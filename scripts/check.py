@@ -169,7 +169,72 @@ def step_1_8(args):
     return 1
 
 
-STEPS = {"1.8": step_1_8}
+# ---------------------------------------------------------------- step 1.9
+
+DRY_DAY_REQUIRED = ["gauge_id", "gauge_distance_km", "rain_day_mm", "rain_prev24_mm", "rain_window_total_mm",
+                    "rain_window_max15_mm", "n_readings_present"]
+
+
+def step_1_9(args):
+    import collections
+    import random
+    from decimal import Decimal
+
+    ok = True
+    cls_dir = ROOT / "data" / "classification"
+    events = [r["event_id"] for p in sorted((ROOT / "data" / "events").glob("*.csv")) for r in read_csv(p)]
+    rows = read_csv(cls_dir / "all_events_classified.csv")
+    by_id = collections.Counter(r["event_id"] for r in rows)
+
+    print("(b) verdicts:", dict(sorted(collections.Counter(r["verdict"] for r in rows).items())))
+    print("    is_final:", dict(sorted(collections.Counter(r["is_final"] for r in rows).items())))
+    one_row_each = sorted(by_id) == sorted(events) and all(v == 1 for v in by_id.values())
+    all_have_verdict = all(r["verdict"] for r in rows)
+    print(f"    events={len(events)} classified rows={len(rows)} exactly one row per event: {one_row_each}; "
+          f"every row has a verdict: {all_have_verdict}")
+    ok &= one_row_each and all_have_verdict
+
+    dry = [r for r in rows if r["verdict"] == "dry_day"]
+    missing = [(r["event_id"], [f for f in DRY_DAY_REQUIRED if not r[f]]) for r in dry
+               if any(not r[f] for f in DRY_DAY_REQUIRED)]
+    print(f"(c) dry_day rows: {len(dry)}; rows missing an evidence field: {len(missing)}")
+    for event_id, fields in missing[:10]:
+        print(f"    {event_id}: {fields}")
+    ok &= not missing
+
+    gauges = {g["gauge_id"]: g for g in read_csv(ROOT / "data" / "rain" / "gauges.csv")}
+    sample = random.sample(dry, min(5, len(dry)))
+    note = "" if len(dry) >= 5 else f" (only {len(dry)} dry_day events exist)"
+    print(f"(d) independent recomputation for {len(sample)} random dry_day events{note}:")
+    for r in sample:
+        url = f"{HYDROLOGY}/measures/{gauges[r['gauge_id']]['measure_id']}/readings"
+        params = {"mineq-date": r["window_start_utc"][:10], "max-date": r["window_end_utc"][:10], "_limit": 2000}
+        items = get_json(url, params)["items"]
+        values = {}
+        for item in items:
+            if item.get("value") not in (None, "") and float(item["value"]) >= 0:
+                values[item["dateTime"]] = Decimal(str(item["value"]))
+        total = sum(values.values(), Decimal(0))
+        match = abs(total - Decimal(r["rain_window_total_mm"])) <= Decimal("0.01")
+        dry_ok = total <= Decimal("0.25")
+        print(f"    {r['event_id']} start {r['start_utc']} gauge {gauges[r['gauge_id']]['label']} "
+              f"({r['gauge_distance_km']} km)")
+        print(f"      {url}?mineq-date={params['mineq-date']}&max-date={params['max-date']}")
+        print(f"      recomputed total {total} mm from {len(values)} readings; stored {r['rain_window_total_mm']} mm "
+              f"from {r['n_readings_present']}; match within 0.01: {match}; <= 0.25: {dry_ok}")
+        ok &= match and dry_ok
+
+    changes_path = cls_dir / "verdict_changes.csv"
+    header = changes_path.read_text(encoding="utf-8").splitlines()[0] if changes_path.exists() else ""
+    header_ok = header == "event_id,from_verdict,to_verdict,changed_utc,n_readings_present"
+    print(f"(e) verdict_changes.csv exists with header: {header_ok} ({header!r})")
+    ok &= header_ok
+
+    print("PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
+
+STEPS = {"1.8": step_1_8, "1.9": step_1_9}
 
 
 def main():

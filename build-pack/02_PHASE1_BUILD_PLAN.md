@@ -133,7 +133,7 @@ Jaimin will have:
 
 ## Step 6 — The rule and the classifier
 
-- [ ] **1.9 Write `swt/geo.py`, `swt/rule.py`, `scripts/classify.py`.**
+- [x] **1.9 Write `swt/geo.py`, `swt/rule.py`, `scripts/classify.py`.**
   - `swt/geo.py`: `haversine_km(lat1, lon1, lat2, lon2)`; `nearest_gauges(lat, lon, gauges, max_km=10.0) -> list sorted by distance`.
   - `swt/rule.py`: `classify_event(start_utc, gauge_candidates, rain_lookup, now_utc, rule_version="dry-day-v1") -> dict` implementing `01_SPEC.md` §5.2–5.3 as a pure function (no I/O). `rain_lookup(gauge_id, date) -> {total_mm, max15_mm, n_readings} | None`.
   - `tests/test_rule.py` covering at least: window total exactly 0.25 → `dry_day`; 0.26 → `not_dry`; max15 0.30 but total 0.30 → `not_dry` (total rule); nearest gauge has 170 readings, second-nearest has 192 → second chosen; no gauge within 10 km → `no_gauge_within_10km`; candidates all < 176 readings and `now < window_end + 72 h` → `pending_rain_data`; same but `now ≥ window_end + 72 h` → `insufficient_readings`; event on a UTC-day boundary (23:59:59Z vs 00:00:00Z) lands in the right day and window; `verdict_basis == "total"`, `rule_version` echoed; `is_final` false at 180 readings within 14 days, true at 192 readings, true at 180 readings after 14 days.

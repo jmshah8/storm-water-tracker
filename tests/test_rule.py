@@ -1,0 +1,123 @@
+"""Tests for swt/rule.py, dry-day-v1 (01_SPEC.md §5.2–5.3)."""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from swt.geo import haversine_km, nearest_gauges  # noqa: E402
+from swt.rule import classify_event  # noqa: E402
+
+START = "2026-09-10T14:00:00Z"          # day D = 2026-09-10; window 09-09T00:00Z .. 09-11T00:00Z
+NOW_EARLY = "2026-09-12T00:00:00Z"      # < window_end + 72 h
+NOW_AFTER_72H = "2026-09-14T00:00:00Z"  # = window_end + 72 h
+NOW_AFTER_14D = "2026-09-25T00:00:00Z"  # = window_end + 14 days
+
+NEAR = {"gauge_id": "near", "label": "Near gauge", "distance_km": 2.0}
+FAR = {"gauge_id": "far", "label": "Far gauge", "distance_km": 7.5}
+
+
+def rain(table):
+    """table: {(gauge_id, date): (total_mm, max15_mm, n_readings)}"""
+    def lookup(gauge_id, day):
+        row = table.get((gauge_id, day))
+        return None if row is None else {"total_mm": row[0], "max15_mm": row[1], "n_readings": row[2]}
+    return lookup
+
+
+def both_days(gauge_id, prev, day, prev_day="2026-09-09", same_day="2026-09-10"):
+    return {(gauge_id, prev_day): prev, (gauge_id, same_day): day}
+
+
+def test_total_exactly_threshold_is_dry_day():
+    r = classify_event(START, [NEAR], rain(both_days("near", ("0.05", "0.05", 96), ("0.2", "0.2", 96))), NOW_EARLY)
+    assert r["rain_window_total_mm"] == "0.25"
+    assert r["verdict"] == "dry_day"
+
+
+def test_total_just_above_threshold_is_not_dry():
+    r = classify_event(START, [NEAR], rain(both_days("near", ("0.06", "0.06", 96), ("0.2", "0.2", 96))), NOW_EARLY)
+    assert r["rain_window_total_mm"] == "0.26"
+    assert r["verdict"] == "not_dry"
+
+
+def test_total_rule_not_max15_rule():
+    # a single 15-minute reading of 0.30 and nothing else: total 0.30 > 0.25 -> not_dry
+    r = classify_event(START, [NEAR], rain(both_days("near", ("0", "0", 96), ("0.30", "0.30", 96))), NOW_EARLY)
+    assert (r["rain_window_total_mm"], r["rain_window_max15_mm"]) == ("0.3", "0.3")
+    assert r["verdict"] == "not_dry"
+
+
+def test_nearest_gauge_with_too_few_readings_is_skipped():
+    table = both_days("near", ("0", "0", 74), ("0", "0", 96))            # 170 readings
+    table.update(both_days("far", ("1.2", "0.4", 96), ("0", "0", 96)))  # 192 readings
+    r = classify_event(START, [NEAR, FAR], rain(table), NOW_EARLY)
+    assert (r["gauge_id"], r["gauge_label"], r["gauge_distance_km"]) == ("far", "Far gauge", "7.50")
+    assert r["n_readings_present"] == "192"
+    assert r["verdict"] == "not_dry"
+
+
+def test_no_gauge_within_10km():
+    r = classify_event(START, [], rain({}), NOW_EARLY)
+    assert r["verdict"] == "no_gauge_within_10km"
+    assert r["is_final"] == "true"
+    assert r["gauge_id"] == ""
+
+
+def test_pending_before_72_hours_after_window():
+    table = both_days("near", ("0", "0", 96), ("0", "0", 40))
+    r = classify_event(START, [NEAR], rain(table), NOW_EARLY)
+    assert r["verdict"] == "pending_rain_data"
+    assert r["is_final"] == "false"
+
+
+def test_insufficient_readings_from_72_hours_after_window():
+    table = both_days("near", ("0", "0", 96), ("0", "0", 40))
+    r = classify_event(START, [NEAR], rain(table), NOW_AFTER_72H)
+    assert r["verdict"] == "insufficient_readings"
+    assert r["is_final"] == "false"
+
+
+def test_pending_is_decided_by_time_not_by_missing_files():
+    r = classify_event(START, [NEAR], rain({}), NOW_EARLY)
+    assert r["verdict"] == "pending_rain_data"
+
+
+def test_utc_day_boundary():
+    before = classify_event("2026-09-10T23:59:59Z", [NEAR], rain({}), NOW_EARLY)
+    after = classify_event("2026-09-11T00:00:00Z", [NEAR], rain({}), NOW_EARLY)
+    assert (before["day_utc"], before["window_start_utc"], before["window_end_utc"]) == (
+        "2026-09-10", "2026-09-09T00:00:00Z", "2026-09-11T00:00:00Z")
+    assert (after["day_utc"], after["window_start_utc"], after["window_end_utc"]) == (
+        "2026-09-11", "2026-09-10T00:00:00Z", "2026-09-12T00:00:00Z")
+    # rain on 09-09 is in the window for the 23:59:59 event only
+    table = both_days("near", ("3.0", "1.0", 96), ("0", "0", 96))
+    table[("near", "2026-09-11")] = ("0", "0", 96)
+    assert classify_event("2026-09-10T23:59:59Z", [NEAR], rain(table), NOW_AFTER_14D)["verdict"] == "not_dry"
+    assert classify_event("2026-09-11T00:00:00Z", [NEAR], rain(table), NOW_AFTER_14D)["verdict"] == "dry_day"
+
+
+def test_basis_and_version_echoed():
+    r = classify_event(START, [NEAR], rain(both_days("near", ("0", "0", 96), ("0", "0", 96))), NOW_EARLY,
+                       rule_version="dry-day-v1")
+    assert r["verdict_basis"] == "total"
+    assert r["rule_version"] == "dry-day-v1"
+    assert r["n_readings_expected"] == "192"
+
+
+def test_is_final():
+    partial = rain(both_days("near", ("0", "0", 84), ("0", "0", 96)))   # 180 readings
+    complete = rain(both_days("near", ("0", "0", 96), ("0", "0", 96)))  # 192 readings
+    assert classify_event(START, [NEAR], partial, NOW_AFTER_72H)["is_final"] == "false"
+    assert classify_event(START, [NEAR], complete, NOW_EARLY)["is_final"] == "false"
+    assert classify_event(START, [NEAR], complete, NOW_AFTER_72H)["is_final"] == "true"
+    assert classify_event(START, [NEAR], partial, NOW_AFTER_14D)["is_final"] == "true"
+
+
+def test_geo():
+    # London to Oxford is about 83 km
+    assert 82 < haversine_km(51.5072, -0.1276, 51.752, -1.2577) < 84
+    gauges = [{"gauge_id": "a", "latitude": "51.5500", "longitude": "-0.1276"},   # ~4.7 km north
+              {"gauge_id": "b", "latitude": "51.5200", "longitude": "-0.1276"},   # ~1.4 km north
+              {"gauge_id": "c", "latitude": "51.7000", "longitude": "-0.1276"}]   # ~21 km north
+    near = nearest_gauges(51.5072, -0.1276, gauges)
+    assert [g["gauge_id"] for g in near] == ["b", "a"]
