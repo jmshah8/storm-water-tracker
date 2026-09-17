@@ -1,0 +1,50 @@
+name: deploy-netlify
+on:
+  schedule:
+    - cron: "0 8 * * 1"        # Monday: production
+    # - cron: "0 8 * * 0,2-6"  # Tue–Sun: alias — enable only after step 1.15b
+  workflow_dispatch:
+    inputs:
+      kind: {type: choice, options: [alias, prod], default: alias}
+      override_budget: {type: boolean, default: false}
+concurrency: {group: netlify-deploy, cancel-in-progress: false}
+permissions: {contents: write, actions: read}
+env:
+  KIND: ${{ github.event_name == 'schedule' && (github.event.schedule == '0 8 * * 1' && 'prod' || 'alias') || inputs.kind }}
+  OVERRIDE: ${{ github.event_name == 'workflow_dispatch' && inputs.override_budget || 'false' }}
+  NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+  NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt
+      - run: python scripts/build_site.py
+        env: {GITHUB_TOKEN: "${{ github.token }}"}   # footer "last poll" reads the poll workflow's latest run
+      - run: python scripts/check.py --step 1.11
+      - uses: actions/setup-node@v7
+        with: {node-version: "22"}
+      - name: budget guard
+        run: python scripts/deploy_guard.py --kind "$KIND" --override "$OVERRIDE"
+      - name: deploy
+        run: |
+          set -euo pipefail
+          if [ "$KIND" = prod ]; then TARGET="--prod"; else TARGET="--alias daily"; fi
+          MESSAGE="swt $KIND $(date -u +%FT%TZ) ${GITHUB_SHA::7}"
+          echo "MESSAGE=$MESSAGE" >> "$GITHUB_ENV"
+          npx --yes netlify-cli@27 deploy --dir=site --no-build --json \
+            --message "$MESSAGE" $TARGET > deploy.json
+          cat deploy.json
+      - name: record and commit
+        run: |
+          python scripts/deploy_guard.py --record deploy.json --kind "$KIND" --message "$MESSAGE" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          git config user.name "swt-bot"; git config user.email "swt-bot@users.noreply.github.com"
+          git add data/deploy_log.json
+          git diff --cached --quiet && exit 0
+          git commit -m "deploy: $KIND $(date -u +%FT%TZ)"
+          for i in 1 2 3; do git pull --rebase && git push && break || sleep 5; done
