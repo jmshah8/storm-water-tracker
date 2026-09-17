@@ -20,17 +20,17 @@ Jaimin will have:
    d. Created a Netlify **personal access token** (User settings → Applications → Personal access tokens) and added two GitHub Actions secrets: `NETLIFY_AUTH_TOKEN` (the token) and `NETLIFY_SITE_ID` (Project configuration → General → Project details → Project ID).
    e. Noted the current **credits remaining** shown in the Netlify UI (Team → Billing/Usage) and written it in `NOTES_FOR_JAIMIN.md` as `Netlify credits remaining at start: N of 300 (date)`.
 
-- [ ] **0.1 Verify pre-flight.**
+- [x] **0.1 Verify pre-flight.**
   Run: `git remote -v`, `python3 --version`, `node --version`, `gh auth status`, `gh repo view --json isPrivate,name`, `gh secret list`, `npx netlify-cli@latest status` and `npx netlify-cli@latest sites:list --json` (look for the project and confirm it has **no** linked repository: the JSON `build_settings.repo_url` is empty/null).
   **CHECK 0.1:** remote points at `storm-water-tracker`; Python ≥ 3.12; Node ≥ 20; `gh` authenticated; `isPrivate` is `false`; secrets `NETLIFY_AUTH_TOKEN` and `NETLIFY_SITE_ID` exist; the Netlify project exists with no linked repo; the credit balance line is in NOTES. If any item fails, stop and tell Jaimin exactly which.
 
-- [ ] **0.2 Note the site name** from `sites:list` (e.g. `storm-water-tracker`); step 1.1 writes it into `data/meta.json.site_url` as `https://<site-name>.netlify.app/`.
+- [x] **0.2 Note the site name** from `sites:list` (e.g. `storm-water-tracker`); step 1.1 writes it into `data/meta.json.site_url` as `https://<site-name>.netlify.app/`.
 
 ---
 
 ## Step 1 — Scaffold
 
-- [ ] **1.1 Create the skeleton** exactly as in `README.md` ("Repository that Claude Code will create"), with empty `__init__.py` files, an empty `data/` tree, and these files:
+- [x] **1.1 Create the skeleton** exactly as in `README.md` ("Repository that Claude Code will create"), with empty `__init__.py` files, an empty `data/` tree, and these files:
   - `requirements.txt` (installed by every workflow):
     ```
     requests==2.32.*
