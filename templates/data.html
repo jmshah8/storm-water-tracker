@@ -5,17 +5,17 @@
 <div class="wrap prose">
   <div class="page-head">
     <h1>Data</h1>
-    <p>Every file behind the site, as CSV (UTF-8, one header row). Times are UTC in ISO 8601 with a Z suffix.</p>
+    <p>Every file behind the site, as CSV (UTF-8, one header row). Times are UTC in ISO 8601 with a Z suffix. The links save the file to your computer; CSV files open in Excel, Numbers or any spreadsheet program.</p>
   </div>
 
   <h2>Downloads</h2>
   <ul data-more>
     {% for rel in data_files %}
-    <li><a href="{{ root }}data/{{ rel }}">{{ rel }}</a></li>
+    <li><a href="{{ root }}data/{{ rel }}" download>{{ rel }}</a></li>
     {% endfor %}
   </ul>
   <p>Classified events for one company:
-    {% for slug, name in company_csvs %}<a href="{{ root }}data/classification/companies/{{ slug }}.csv">{{ name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}.
+    {% for slug, name in company_csvs %}<a href="{{ root }}data/classification/companies/{{ slug }}.csv" download>{{ name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}.
   </p>
   <p>Daily rainfall per gauge is not copied here: every event page links to the exact Environment Agency Hydrology API request for its gauge and window.</p>
 

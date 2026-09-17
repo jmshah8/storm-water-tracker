@@ -6,7 +6,7 @@
 <div class="wrap">
   <div class="page-head">
     <h1>Events</h1>
-    <p>Every event flagged as a dry day spill (<span data-metric="events-dry" data-value="{{ n_dry }}">{{ n_dry|thin }}</span>) and every event still waiting for rainfall data (<span data-metric="events-pending" data-value="{{ n_pending }}">{{ n_pending|thin }}</span>), newest first. All other events are in the <a href="{{ root }}data/classification/all_events_classified.csv">full classified events CSV</a>.</p>
+    <p>Every event flagged as a dry day spill (<span data-metric="events-dry" data-value="{{ n_dry }}">{{ n_dry|thin }}</span>) and every event still waiting for rainfall data (<span data-metric="events-pending" data-value="{{ n_pending }}">{{ n_pending|thin }}</span>), newest first. All other events are in the <a href="{{ root }}data/classification/all_events_classified.csv" download>full classified events CSV</a>.</p>
   </div>
   {{ m.event_list(events, root) }}
   {{ m.pager(page_no, n_pages, page_name) }}

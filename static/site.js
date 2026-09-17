@@ -7,14 +7,20 @@
   document.querySelectorAll("[data-more]").forEach(function (list) {
     var items = Array.prototype.slice.call(list.children);
     if (items.length <= SHOWN) return;
-    items.slice(SHOWN).forEach(function (item) { item.hidden = true; });
     var button = document.createElement("button");
     button.type = "button";
     button.className = "more";
-    button.textContent = "See more (" + (items.length - SHOWN) + " more)";
+    var expanded = false;
+    function render() {
+      items.slice(SHOWN).forEach(function (item) { item.hidden = !expanded; });
+      button.textContent = expanded ? "See less" : "See more (" + (items.length - SHOWN) + " more)";
+      button.setAttribute("aria-expanded", String(expanded));
+    }
+    render();
     button.addEventListener("click", function () {
-      items.forEach(function (item) { item.hidden = false; });
-      button.remove();
+      expanded = !expanded;
+      render();
+      if (!expanded) button.scrollIntoView({block: "nearest"});
     });
     var anchor = list.tagName === "TBODY" ? (list.closest(".table-scroll") || list.closest("table")) : list;
     anchor.insertAdjacentElement("afterend", button);
