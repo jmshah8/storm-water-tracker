@@ -2,7 +2,7 @@ name: deploy-netlify
 on:
   schedule:
     - cron: "0 8 * * 1"        # Monday: production
-    # - cron: "0 8 * * 0,2-6"  # Tue–Sun: alias — enable only after step 1.15b
+    - cron: "0 8 * * 0,2-6"    # Tue–Sun: alias — enabled at step 1.15b (alias deploys verified 0 credits on 2026-09-17)
   workflow_dispatch:
     inputs:
       kind: {type: choice, options: [alias, prod], default: alias}
