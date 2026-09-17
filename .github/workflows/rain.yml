@@ -1,7 +1,7 @@
 name: rain
 on:
   schedule:
-    - cron: "30 6 * * *"
+    - cron: "34 6 * * *"   # daily, off the top of the hour
   workflow_dispatch:
 concurrency: {group: data-writers, cancel-in-progress: false}
 permissions: {contents: write}
