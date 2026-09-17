@@ -75,7 +75,7 @@ Jaimin will have:
   ```
   prints `IDEMPOTENT` — note the second run uses a *later* `--now`: with an unchanged feed, no CSV may change; only `status_snapshot.json`'s `observed_utc` may differ, so exclude it: `diff -r -x status_snapshot.json /tmp/swt_a /tmp/swt_a_copy && echo IDEMPOTENT`. Commit: `step 1.3: collector + tests`.
 
-- [ ] **1.4 First live collection.** Run `python scripts/collect.py`. This seeds the archive with the latest known event per overflow.
+- [x] **1.4 First live collection.** Run `python scripts/collect.py`. This seeds the archive with the latest known event per overflow.
   **CHECK 1.4:** (a) `wc -l data/overflows.csv` minus 1 equals the sum of counts from CHECK 1.2 within ±2%; (b) `python - <<'EOF'` script prints: number of overflows, number of events created, number with empty `end_utc` (ongoing), earliest and latest `start_utc`, number of offline periods; (c) `data/meta.json.launch_utc` is now set; (d) every `event_id` is unique across all `data/events/*.csv`; (e) report the number of overflow rows with empty `latitude`/`longitude` (expected 0; if not 0, report which companies — those overflows cannot be classified and are counted on the Method page). Paste the numbers. Commit: `step 1.4: first live collection (launch)`.
 
   > Note for the Method page (write it into `NOTES_FOR_JAIMIN.md` now): events with `start_utc` earlier than `launch_utc` are only "the most recent event per overflow at launch", not a complete record. The site must not show league tables or monthly counts for any period before `launch_utc`'s month, and must label that month "partial (from {launch date})".
