@@ -1,0 +1,89 @@
+{
+  "south-west": {
+    "features": [
+      {
+        "attributes": {
+          "Id": "SWW001",
+          "company": "South West Water",
+          "lastUpdated": 1767222000000,
+          "latestEventEnd": 1767000600000,
+          "latestEventStart": 1766988900000,
+          "latitude": 50.7184,
+          "longitude": -3.5339,
+          "receivingWaterCourse": "River Exe",
+          "status": 0,
+          "statusStart": 1767000600000
+        }
+      }
+    ]
+  },
+  "st-connect": {
+    "features": [
+      {
+        "attributes": {
+          "Company": "ST Connect",
+          "GlobalID": "{00000000-0000-0000-0000-000000000001}",
+          "Id": "STC001",
+          "LastUpdated": 1767218400000,
+          "LatestEventFinish": 1766936700000,
+          "LatestEventStart": 1766930400000,
+          "Latitude": 52.4862,
+          "Longitude": -1.8904,
+          "OBJECTID": 1,
+          "ReceivingWaterCourse": "River Rea",
+          "Status": 0,
+          "StatusStart": 1766936700000
+        }
+      }
+    ]
+  },
+  "thames": {
+    "features": [
+      {
+        "attributes": {
+          "Company": "Thames Water",
+          "Id": "TW001",
+          "LastUpdated": 1767225300000,
+          "LatestEventEnd": 1767182400000,
+          "LatestEventStart": 1767175200000,
+          "Latitude": 51.5072,
+          "Longitude": -0.1276,
+          "OBJECTID": 1,
+          "ReceivingWaterCourse": "River Thames",
+          "Status": 0,
+          "StatusStart": 1767182400000
+        }
+      },
+      {
+        "attributes": {
+          "Company": "Thames Water",
+          "Id": "TW002",
+          "LastUpdated": 1767225300000,
+          "LatestEventEnd": null,
+          "LatestEventStart": 1767218400000,
+          "Latitude": 51.752,
+          "Longitude": -1.2577,
+          "OBJECTID": 2,
+          "ReceivingWaterCourse": "River Cherwell",
+          "Status": 1,
+          "StatusStart": 1767218400000
+        }
+      },
+      {
+        "attributes": {
+          "Company": "Thames Water",
+          "Id": "TW003",
+          "LastUpdated": 1767225300000,
+          "LatestEventEnd": null,
+          "LatestEventStart": null,
+          "Latitude": 51.4543,
+          "Longitude": -0.9781,
+          "OBJECTID": 3,
+          "ReceivingWaterCourse": "River Kennet",
+          "Status": -1,
+          "StatusStart": 1767081600000
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "south-west": {
+    "company_name": "South West Water",
+    "field_map": {
+      "Company": "company",
+      "Id": "Id",
+      "LastUpdated": "lastUpdated",
+      "LatestEventEnd": "latestEventEnd",
+      "LatestEventStart": "latestEventStart",
+      "Latitude": "latitude",
+      "Longitude": "longitude",
+      "ReceivingWaterCourse": "receivingWaterCourse",
+      "Status": "status",
+      "StatusStart": "statusStart"
+    },
+    "item_id": "fixture-south-west",
+    "layer_url": "https://fixture.invalid/south-west/FeatureServer/0",
+    "max_record_count": 2000
+  },
+  "st-connect": {
+    "company_name": "ST Connect",
+    "field_map": {
+      "Company": "Company",
+      "Id": "Id",
+      "LastUpdated": "LastUpdated",
+      "LatestEventEnd": "LatestEventFinish",
+      "LatestEventStart": "LatestEventStart",
+      "Latitude": "Latitude",
+      "Longitude": "Longitude",
+      "ReceivingWaterCourse": "ReceivingWaterCourse",
+      "Status": "Status",
+      "StatusStart": "StatusStart"
+    },
+    "item_id": "fixture-st-connect",
+    "layer_url": "https://fixture.invalid/st-connect/FeatureServer/0",
+    "max_record_count": 2000
+  },
+  "thames": {
+    "company_name": "Thames Water",
+    "field_map": {
+      "Company": "Company",
+      "Id": "Id",
+      "LastUpdated": "LastUpdated",
+      "LatestEventEnd": "LatestEventEnd",
+      "LatestEventStart": "LatestEventStart",
+      "Latitude": "Latitude",
+      "Longitude": "Longitude",
+      "ReceivingWaterCourse": "ReceivingWaterCourse",
+      "Status": "Status",
+      "StatusStart": "StatusStart"
+    },
+    "item_id": "fixture-thames",
+    "layer_url": "https://fixture.invalid/thames/FeatureServer/0",
+    "max_record_count": 2000
+  }
+}

@@ -59,7 +59,7 @@ Jaimin will have:
 
 ## Step 3 — The collector
 
-- [ ] **1.3 Write `swt/io.py`, `swt/timeutil.py`, and `scripts/collect.py`** implementing `01_SPEC.md` §4 exactly.
+- [x] **1.3 Write `swt/io.py`, `swt/timeutil.py`, and `scripts/collect.py`** implementing `01_SPEC.md` §4 exactly.
   - `swt/io.py`: `read_csv(path) -> list[dict]`, `write_csv(path, rows, fieldnames, sort_key)` (UTF-8, `\n`, sorted, no trailing spaces), `read_json/write_json` (sorted keys, 2-space indent, trailing newline).
   - `swt/timeutil.py`: `ms_to_iso(ms) -> "YYYY-MM-DDTHH:MM:SSZ"`, `iso_to_ms`, `now_iso()`, `utc_day(iso) -> "YYYY-MM-DD"`.
   - `scripts/collect.py --sources scripts/sources_resolved.json --data data/ [--dry-run] [--fixture PATH] [--now ISO]`. `--fixture` reads a JSON file shaped exactly like the ArcGIS query responses (`{"<company_slug>": {"features": [{"attributes": {...}}]}}`) instead of the network (tests only) and **requires** `--now`; `--now` fixes the clock so outputs are reproducible. If `data/meta.json` is absent in the target `--data` directory, create it with `launch_utc: null`. On first ever run (when `launch_utc` is null) set `launch_utc` to now and write it. Exit code 0 always unless a network/parse error (exit 2).
