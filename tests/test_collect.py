@@ -143,7 +143,7 @@ def test_offline_open_then_close(tmp_path):
     collect(data, SNAPSHOT_A, NOW_1)
     assert offline(data) == [{"overflow_key": "thames:TW003", "company_slug": "thames",
                               "offline_start_utc": "2025-12-30T08:00:00Z", "offline_end_utc": "",
-                              "first_observed_utc": NOW_1, "last_observed_utc": NOW_1}]
+                              "offline_end_source": "", "first_observed_utc": NOW_1, "last_observed_utc": NOW_1}]
 
     fx = snapshot_a()
     a = attrs(fx, "thames", "TW003")
@@ -153,7 +153,49 @@ def test_offline_open_then_close(tmp_path):
     periods = offline(data)
     assert len(periods) == 1
     assert periods[0]["offline_end_utc"] == "2026-01-01T00:03:00Z"
+    assert periods[0]["offline_end_source"] == "feed"
     assert periods[0]["last_observed_utc"] == NOW_2
+
+
+def test_offline_without_status_start_closes_at_collector_time(tmp_path):
+    data = tmp_path / "data"
+    fx = snapshot_a()
+    attrs(fx, "thames", "TW003")["StatusStart"] = None
+    collect(data, write_fixture(tmp_path, "a.json", fx), NOW_1)
+    assert offline(data)[0]["offline_start_utc"] == ""
+
+    a = attrs(fx, "thames", "TW003")
+    a["Status"] = 0
+    collect(data, write_fixture(tmp_path, "b.json", fx), NOW_2)
+    periods = offline(data)
+    assert len(periods) == 1
+    assert (periods[0]["offline_end_utc"], periods[0]["offline_end_source"]) == (NOW_2, "collector")
+
+
+def test_end_before_start_is_left_empty(tmp_path):
+    data = tmp_path / "data"
+    fx = snapshot_a()
+    attrs(fx, "thames", "TW001")["LatestEventEnd"] = iso_to_ms("2025-12-30T12:00:00Z")
+    stdout = collect(data, write_fixture(tmp_path, "a.json", fx), NOW_1)
+    ev = events(data)[f"thames:TW001:{iso_to_ms('2025-12-31T10:00:00Z')}"]
+    assert (ev["end_utc"], ev["duration_min"], ev["end_observed"]) == ("", "", "")
+    assert "ends_before_start_left_empty=1" in stdout.splitlines()
+
+
+def test_unchanged_feed_with_millisecond_jitter_changes_no_file(tmp_path):
+    data = tmp_path / "data"
+    collect(data, SNAPSHOT_A, NOW_1)
+    before = {p: p.read_bytes() for p in data.rglob("*") if p.is_file()}
+
+    fx = snapshot_a()
+    a = attrs(fx, "thames", "TW001")
+    a["StatusStart"] += 300
+    a["LatestEventStart"] += 100
+    a["LatestEventEnd"] += 300
+    a["LastUpdated"] += 600000
+    collect(data, write_fixture(tmp_path, "b.json", fx), NOW_2)
+    after = {p: p.read_bytes() for p in data.rglob("*") if p.is_file()}
+    assert after == before
 
 
 def test_camelcase_and_latest_event_finish_aliases(tmp_path):

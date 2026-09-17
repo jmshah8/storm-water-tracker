@@ -132,7 +132,7 @@ https://www.data.gov.uk/dataset/19f6064d-7356-466f-844e-d20ea10ae9fd/event-durat
 | `first_seen_utc`, `last_seen_utc` | ISO Z | |
 
 ### 3.2 `data/status_snapshot.json` — last observed record per overflow (for change detection)
-Object keyed by `overflow_key` → `{status, status_start_ms, latest_event_start_ms, latest_event_end_ms, last_updated_ms, observed_utc}`. Sorted keys, 2-space indent.
+Object keyed by `overflow_key` → `{status, status_start_ms, latest_event_start_ms, latest_event_end_ms}`, times cut to whole seconds. Sorted keys, 2-space indent. *(Changed at GATE 1, 17 Sep 2026: no per-overflow `observed_utc` and no `last_updated_ms` — companies re-stamp `LastUpdated` and add random milliseconds to unchanged times on every refresh, so either would rewrite the whole file on every poll. The snapshot changes only when a status or event time really changes.)*
 
 ### 3.3 `data/events/YYYY-MM.csv` — one row per discharge event, filed by UTC month of `start_utc` (key: `event_id`)
 | column | notes |
@@ -148,7 +148,7 @@ Object keyed by `overflow_key` → `{status, status_start_ms, latest_event_start
 | `end_observed` | `true` if we saw the end via the feed; `false` if inferred (§4.4) |
 
 ### 3.4 `data/offline/YYYY-MM.csv` — monitor offline periods (key: `overflow_key`,`offline_start_utc`)
-Columns: `overflow_key`, `company_slug`, `offline_start_utc` (from `StatusStart` when `Status=-1`), `offline_end_utc` (empty while offline), `first_observed_utc`, `last_observed_utc`.
+Columns: `overflow_key`, `company_slug`, `offline_start_utc` (from `StatusStart` when `Status=-1`; empty if the feed gives none), `offline_end_utc` (empty while offline), `offline_end_source` (`feed` = from the feed's `StatusStart`; `collector` = the time our poller saw the monitor back online, used when the feed gives no `StatusStart`; empty while offline), `first_observed_utc`, `last_observed_utc`.
 
 ### 3.5 `data/rain/gauges.csv` — EA Hydrology rainfall stations with a 15-min measure (key: `gauge_id`)
 Columns: `gauge_id` (station `notation`), `measure_id` (the `-rainfall-t-900-mm-qualified` notation), `label`, `latitude`, `longitude`, `date_opened`, `fetched_utc`.
@@ -183,20 +183,20 @@ Also `data/classification/verdict_changes.csv` (key: `event_id`,`changed_utc`): 
 
 4.1 For each company: load the Feature Service URL and field-alias map from `scripts/sources_resolved.json` (written by `sources.py`; re-resolve if a query returns 4xx), page through layer 0, and normalise each record to `{overflow_key, status, status_start_ms, latest_event_start_ms, latest_event_end_ms, last_updated_ms, lat, lon, watercourse}` using the alias map. `collect.py` accepts `--now ISO` to fix the clock (used by tests for byte-identical output) and `--fixture PATH` (a JSON file shaped exactly like the ArcGIS query response: `{"features": [{"attributes": {...}}, ...]}` per company, keyed by `company_slug`).
 
-4.2 **Upsert overflows.** New `overflow_key` → append to `overflows.csv` with `first_seen_utc = now`. Update coordinates and watercourse only if changed. `last_seen_utc` is updated only when the overflow's record changed in this poll (so an unchanged feed produces no CSV diff); the per-poll observation time lives in `status_snapshot.json` (`observed_utc`).
+4.2 **Upsert overflows.** New `overflow_key` → append to `overflows.csv` with `first_seen_utc = now`. Update coordinates and watercourse only if changed. `last_seen_utc` is updated only when the overflow's status/event times (as stored in the snapshot, §3.2), coordinates or watercourse changed in this poll (so an unchanged feed produces no diff in any file).
 
 4.2a **Guard against silent schema drift.** If any mapped logical field is absent from the first record returned for a company, exit 2 with a message naming the company and field (a renamed field must fail loudly in CI, never produce nulls).
 
 4.3 **Detect events.** Compare against `status_snapshot.json`:
 - If `latest_event_start_ms` is non-null: first look for an existing event for the same overflow whose `start_utc` is within ±15 minutes of it (**near-duplicate rule** — companies occasionally re-time a start). If one exists, it *is* this event: keep its `event_id` unchanged (ids are immutable), update its `start_utc` to the feed's current value, and count the re-timing in a run counter reported in the log. If none exists → **new event**: `event_id = {overflow_key}:{latest_event_start_ms}`, `start_utc`, `end_utc` (if `latest_event_end_ms` non-null), `first_observed_utc = now`.
-- If an event exists and `latest_event_end_ms` is now non-null and the event's `end_utc` is empty → set `end_utc`, `duration_min`, `end_observed = true`.
+- If an event exists and `latest_event_end_ms` is now non-null and the event's `end_utc` is empty → set `end_utc`, `duration_min`, `end_observed = true` — **unless the end is earlier than the event's start** (a feed error seen on United Utilities at launch): then leave `end_utc` empty and count it in the run log (GATE 1 decision, 17 Sep 2026).
 - Set `last_observed_utc = now` for the event matching the current `latest_event_start_ms` **only when that event's row changed in this poll** (new, re-timed, or end filled in) — otherwise leave the row untouched so unchanged feeds produce no diff.
 
 4.4 **Inferred ends.** If an overflow's `latest_event_start_ms` moves to a *newer* event while an older event still has empty `end_utc`, set the older event's `end_utc` to the newer event's `start_utc` and `end_observed = false`. (We missed the stop between polls.)
 
-4.5 **Offline.** `Status = -1` → open an offline period from `status_start_ms` if none open; when `Status` returns to 0/1 → close it with `offline_end_utc = status_start_ms` of the new status.
+4.5 **Offline.** `Status = -1` → open an offline period from `status_start_ms` (empty if null) if none open; when `Status` returns to 0/1 → close it with `offline_end_utc = status_start_ms` of the new status and `offline_end_source = feed`, or, if that is null, with `offline_end_utc = now` and `offline_end_source = collector` (GATE 1 decision, 17 Sep 2026).
 
-4.6 Write snapshot and the affected month CSVs deterministically. Exit 0 if no changes (the workflow then skips the commit).
+4.6 Write snapshot and the affected month CSVs deterministically. Exit 0 if no changes (the workflow then skips the commit). Because a quiet poll writes nothing, the site's "last poll" time comes from the poll workflow's latest run, not from a data file.
 
 4.7 **What we cannot capture** (state on Method page): an event that starts and ends between two polls *and* is followed by another event before the next poll loses the first event. Poll interval is 10 minutes; Thames's feed refreshes every 5 minutes, others hourly, so in practice this is rare.
 

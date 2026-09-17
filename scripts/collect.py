@@ -29,9 +29,11 @@ OVERFLOW_FIELDS = ["overflow_key", "company_slug", "company_name", "source_id", 
                    "receiving_watercourse", "first_seen_utc", "last_seen_utc"]
 EVENT_FIELDS = ["event_id", "overflow_key", "company_slug", "start_utc", "end_utc", "duration_min", "source",
                 "first_observed_utc", "last_observed_utc", "end_observed"]
-OFFLINE_FIELDS = ["overflow_key", "company_slug", "offline_start_utc", "offline_end_utc",
+OFFLINE_FIELDS = ["overflow_key", "company_slug", "offline_start_utc", "offline_end_utc", "offline_end_source",
                   "first_observed_utc", "last_observed_utc"]
-SNAPSHOT_FIELDS = ["status", "status_start_ms", "latest_event_start_ms", "latest_event_end_ms", "last_updated_ms"]
+# Only what change detection needs, times cut to whole seconds: some feeds add random milliseconds to
+# unchanged times on every refresh, and LastUpdated is re-stamped on every refresh (GATE 1 decision).
+SNAPSHOT_FIELDS = ["status", "status_start_ms", "latest_event_start_ms", "latest_event_end_ms"]
 
 
 class FetchError(Exception):
@@ -101,11 +103,14 @@ def normalise(slug, attrs, field_map):
         "status_start_ms": as_int(get("StatusStart")),
         "latest_event_start_ms": as_int(get("LatestEventStart")),
         "latest_event_end_ms": as_int(get("LatestEventEnd")),
-        "last_updated_ms": as_int(get("LastUpdated")),
         "latitude": "" if lat is None else f"{float(lat):.6f}",
         "longitude": "" if lon is None else f"{float(lon):.6f}",
         "receiving_watercourse": "" if get("ReceivingWaterCourse") is None else str(get("ReceivingWaterCourse")),
     }
+
+
+def whole_second(ms):
+    return None if ms is None else ms - ms % 1000
 
 
 def duration_min(start_ms, end_ms):
@@ -187,7 +192,8 @@ def run(data_dir, srcs, feeds, now, stats):
 
 def apply_record(slug, src, rec, overflows, snapshot, events_by_overflow, offline_by_overflow, now, stats):
     key = rec["overflow_key"]
-    core = {k: rec[k] for k in SNAPSHOT_FIELDS}
+    core = {"status": rec["status"]}
+    core.update({k: whole_second(rec[k]) for k in SNAPSHOT_FIELDS if k != "status"})
     previous = snapshot.get(key)
 
     # 4.2 overflows
@@ -206,7 +212,7 @@ def apply_record(slug, src, rec, overflows, snapshot, events_by_overflow, offlin
                 changed = True
         if changed:
             row["last_seen_utc"] = now
-    snapshot[key] = dict(core, observed_utc=now)
+    snapshot[key] = core
 
     # 4.3 / 4.4 events
     start_ms, end_ms = rec["latest_event_start_ms"], rec["latest_event_end_ms"]
@@ -229,7 +235,10 @@ def apply_record(slug, src, rec, overflows, snapshot, events_by_overflow, offlin
             overflow_events.append(event)
             stats["new_events"] += 1
             changed = True
-        if end_ms is not None and not event["end_utc"]:
+        if end_ms is not None and not event["end_utc"] and whole_second(end_ms) < iso_to_ms(event["start_utc"]):
+            # The feed's end precedes the start (a data error); leave the end empty (GATE 1 decision).
+            stats["ends_before_start_left_empty"] += 1
+        elif end_ms is not None and not event["end_utc"]:
             event["end_utc"] = ms_to_iso(end_ms)
             event["duration_min"] = duration_min(start_ms, end_ms)
             event["end_observed"] = "true"
@@ -253,18 +262,20 @@ def apply_record(slug, src, rec, overflows, snapshot, events_by_overflow, offlin
     if rec["status"] == -1:
         if not open_periods:
             periods.append({"overflow_key": key, "company_slug": slug, "offline_start_utc": status_start,
-                            "offline_end_utc": "", "first_observed_utc": now, "last_observed_utc": now})
+                            "offline_end_utc": "", "offline_end_source": "", "first_observed_utc": now,
+                            "last_observed_utc": now})
             stats["offline_opened"] += 1
             if not status_start:
                 stats["offline_opened_without_status_start"] += 1
     elif rec["status"] in (0, 1) and open_periods:
-        if status_start:
-            for p in open_periods:
-                p["offline_end_utc"] = status_start
-                p["last_observed_utc"] = now
-                stats["offline_closed"] += 1
-        else:
-            stats["offline_close_skipped_without_status_start"] += 1
+        # Without a StatusStart, the end is the time this poll saw the monitor back (GATE 1 decision).
+        for p in open_periods:
+            p["offline_end_utc"] = status_start or now
+            p["offline_end_source"] = "feed" if status_start else "collector"
+            p["last_observed_utc"] = now
+            stats["offline_closed"] += 1
+            if not status_start:
+                stats["offline_closed_at_collector_time"] += 1
 
 
 def write_outputs(data_dir, meta, overflows, snapshot, events_by_overflow, offline_by_overflow):
