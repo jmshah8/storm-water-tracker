@@ -40,7 +40,8 @@
 {% macro badge(ev) %}
 {% if ev.verdict == 'dry_day' %}
 <span class="badge badge--dry">Dry day spill · EA definition</span>
-<p class="subline">Potential breach; not confirmed. {% if ev.n_readings_present == '192' and ev.is_final == 'true' %}Complete rain data (192 of 192 readings).{% else %}Provisional — rain data {{ ev.n_readings_present }} of 192 readings.{% endif %}</p>
+{% set missing = 192 - (ev.n_readings_present|int) %}
+<p class="subline">Potential breach; not confirmed. {% if missing == 0 %}Complete rain data (192 of 192 readings).{% elif ev.is_final == 'true' %}Rain data {{ ev.n_readings_present }} of 192 readings (final; {{ missing }} reading{{ 's' if missing != 1 }} never published).{% else %}Rain data {{ ev.n_readings_present }} of 192 readings (awaiting {{ missing }} reading{{ 's' if missing != 1 }}).{% endif %}</p>
 {% elif ev.verdict == 'pending_rain_data' %}
 <span class="badge">Rain check pending</span>
 <p class="subline">Rainfall data for this window is not yet available from the Environment Agency.</p>

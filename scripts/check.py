@@ -377,13 +377,102 @@ def step_1_11(args):
     return 0 if ok else 1
 
 
+# ---------------------------------------------------------------- step 1.13
+
+CONTRAST_PAIRS = [("text", "bg"), ("muted", "bg"), ("flag", "bg"), ("text", "surface"), ("muted", "surface"),
+                  ("flag", "surface"), ("black", "white")]
+
+
+def relative_luminance(hex_colour):
+    h = hex_colour.lstrip("#")
+    channels = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def contrast_ratio(a, b):
+    la, lb = sorted((relative_luminance(a), relative_luminance(b)), reverse=True)
+    return (la + 0.05) / (lb + 0.05)
+
+
+def step_1_13(args):
+    import functools
+    import http.server
+    import re
+    import threading
+    from playwright.sync_api import sync_playwright  # imported here only: the deploy job does not install Playwright
+
+    ok = True
+    css = (ROOT / "static" / "style.css").read_text(encoding="utf-8")
+    root_block = re.search(r":root\s*\{([^}]*)\}", css).group(1)
+    palette = dict(re.findall(r"--([a-z-]+):\s*(#[0-9a-fA-F]{6})", root_block))
+    print("contrast ratios (WCAG, from style.css :root):")
+    for fg, bg in CONTRAST_PAIRS:
+        ratio = contrast_ratio(palette[fg], palette[bg])
+        passed = ratio >= 4.5
+        ok &= passed
+        print(f"    --{fg} {palette[fg]} on --{bg} {palette[bg]}: {ratio:.2f}:1 {'ok' if passed else 'FAIL'}")
+
+    site = ROOT / "site"
+    rows = read_csv(ROOT / "data" / "classification" / "all_events_classified.csv")
+    dry = sorted((r for r in rows if r["verdict"] == "dry_day"), key=lambda r: r["start_utc"], reverse=True)
+    sample = dry or [r for r in rows if r["verdict"] == "pending_rain_data"]
+    event_page = "events/" + re.sub(r"[^A-Za-z0-9_-]", "_", sample[0]["event_id"]) + ".html"
+    pages = [("index", "index.html"), ("company", "companies/anglian.html"), ("event", event_page),
+             ("method", "method.html")]
+    print(f"event page used: {event_page} ({sample[0]['verdict']})")
+
+    class QuietHandler(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+    handler = functools.partial(QuietHandler, directory=str(site))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}/"
+    shots = ROOT / "screenshots"
+    shots.mkdir(exist_ok=True)
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            for width, height in ((1440, 900), (390, 844)):
+                page = browser.new_page(viewport={"width": width, "height": height})
+                for name, path in pages:
+                    page.goto(base + path, wait_until="networkidle")
+                    page.evaluate("document.fonts.ready")
+                    out = shots / f"{name}-{width}x{height}.png"
+                    page.screenshot(path=str(out), full_page=True)
+                    scroll_width = page.evaluate("document.documentElement.scrollWidth")
+                    line = f"    {out.name}: scrollWidth={scroll_width}"
+                    if width == 390:
+                        passed = scroll_width <= 390
+                        ok &= passed
+                        line += f" (<= 390: {passed})"
+                    if name == "index" and width == 1440:
+                        box = page.locator(".hero-title").bounding_box()
+                        headline_ok = box is not None and box["y"] >= 0 and box["y"] + box["height"] <= height
+                        pill = page.locator(".nav .pill")
+                        pill_box = pill.bounding_box()
+                        pill_ok = pill.is_visible() and pill_box is not None and pill_box["y"] + pill_box["height"] <= height
+                        ok &= headline_ok and pill_ok
+                        line += (f"; hero headline top={box['y']:.0f} bottom={box['y'] + box['height']:.0f} "
+                                 f"(fully above the fold: {headline_ok}); nav pill visible: {pill_ok}")
+                    print(line)
+                page.close()
+            browser.close()
+    finally:
+        server.shutdown()
+    print("PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
+
 def read_json_file(path):
     import json
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11}
+STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13}
 
 
 def main():

@@ -224,7 +224,7 @@ Otherwise, in this order:
 - `no_gauge_within_10km` (always final);
 - `dry_day` / `not_dry` with `n_readings_present = 192` **and** `now_utc ≥ window_end_utc + 72 h` (the 72 h prevents locking in a farther gauge while the nearest is still lagging);
 - `dry_day` / `not_dry` with any reading count once `now_utc ≥ window_end_utc + 14 days`.
-`pending_rain_data` and `insufficient_readings` are never final and are re-evaluated every run. A non-final verdict may change; a final one never changes without `--force` and a rule-version bump. The site shows non-final `dry_day`/`not_dry` verdicts with the "Provisional" sub-line in §5.6. Every change between `dry_day` and `not_dry` is appended to `data/classification/verdict_changes.csv` (columns exactly as §3.7) so flips are auditable. Because the rain pipeline refetches a rolling 15-day window (§6.2), late-arriving readings inside the 14-day provisional period are actually picked up.
+`pending_rain_data` and `insufficient_readings` are never final and are re-evaluated every run. A non-final verdict may change; a final one never changes without `--force` and a rule-version bump. The site shows how many readings a `dry_day` flag is still awaiting, per the sub-lines in §5.6. Every change between `dry_day` and `not_dry` is appended to `data/classification/verdict_changes.csv` (columns exactly as §3.7) so flips are auditable. Because the rain pipeline refetches a rolling 15-day window (§6.2), late-arriving readings inside the 14-day provisional period are actually picked up.
 
 5.4 **Time.** Everything in UTC. A "day" is a UTC calendar day. The Hydrology API `dateTime` is treated as UTC (verified in step 1.8). Stated on the Method page as: "We use UTC calendar days. The Environment Agency's definition does not specify a time zone; EDM data is reported in GMT."
 
@@ -232,7 +232,7 @@ Otherwise, in this order:
 
 5.6 **Labels on the site (the only permitted wording; badge text is uppercase in CSS, not in the source).**
 - `pending_rain_data` → badge `Rain check pending`; sub-line `Rainfall data for this window is not yet available from the Environment Agency.`
-- `dry_day` → badge `Dry day spill · EA definition`; sub-line `Potential breach; not confirmed.` followed by either `Complete rain data (192 of 192 readings).` or `Provisional — rain data {n} of 192 readings.`
+- `dry_day` → badge `Dry day spill · EA definition`; sub-line `Potential breach; not confirmed.` followed by one of: `Complete rain data (192 of 192 readings).` when n = 192; `Rain data {n} of 192 readings (awaiting {192−n} reading[s]).` when n < 192 and not final; `Rain data {n} of 192 readings (final; {192−n} reading[s] never published).` when n < 192 and final. *(Changed at GATE 3, 17 Sep 2026, Jaimin: a flag with 191 readings is waiting on one reading, not provisional as a whole.)*
 - `not_dry` → badge `Not a dry day`; sub-line `Rain recorded in the window: {total} mm.`
 - `no_gauge_within_10km` → badge `No gauge within 10 km`; sub-line `Cannot be classified under this method.`
 - `insufficient_readings` → badge `Insufficient rain data`; sub-line `Nearest gauges returned fewer than 176 of 192 readings.`
