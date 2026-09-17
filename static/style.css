@@ -121,6 +121,12 @@ tbody th { font-weight: 400; }
   background: transparent; border: 1px solid var(--rule); border-radius: 999px; padding: 6px 12px; cursor: pointer;
 }
 .toggle button[aria-pressed="true"] { color: var(--text); border-color: var(--muted); }
+.more {
+  display: block; margin: 16px 0 0; font: inherit; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text); background: transparent; border: 1px solid var(--rule); border-radius: 999px; padding: 8px 16px; cursor: pointer;
+}
+.more:hover { border-color: var(--muted); }
+[hidden] { display: none !important; }
 .period-note { font-size: 14px; color: var(--muted); margin: 0 0 12px; }
 
 /* event lists */

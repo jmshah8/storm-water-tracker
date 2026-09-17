@@ -15,7 +15,7 @@
     <h2>By month</h2>
     <p class="period-note">Events counted by the UTC day they started. “Complete rain data” is the share of the month's events with a dry day or not-dry verdict based on all 192 of 192 gauge readings.</p>
     <div class="table-scroll">
-    <table data-sortable>
+    <table>
       <thead>
         <tr>
           <th scope="col">Month</th>
@@ -25,7 +25,7 @@
           <th scope="col" class="num">Complete rain data</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody data-more>
       {% for row in monthly %}
         <tr>
           <th scope="row">{{ row.label }}</th>

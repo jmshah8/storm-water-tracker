@@ -58,7 +58,7 @@
 {% endmacro %}
 
 {% macro event_list(events, root) %}
-<ul class="event-list">
+<ul class="event-list" data-more>
 {% for ev in events %}
   <li><a class="{{ 'dry' if ev.verdict == 'dry_day' else 'pending' }}" href="{{ root }}events/{{ ev.slug }}.html">
     <span>{{ ev.start_utc|dt }}<small>{{ 'Dry day spill' if ev.verdict == 'dry_day' else 'Rain check pending' }}</small></span>

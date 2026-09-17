@@ -1,5 +1,25 @@
-// Table sorting and the "last 30 days / this year" toggle. No fetching.
+// Table sorting, the "last 30 days / this year" toggle, and "See more" on long lists. No fetching.
 (function () {
+  var SHOWN = 10;
+
+  // Any list marked data-more (a ul, ol or tbody) shows its first 10 items, then a "See more" button.
+  // Without JavaScript every item stays visible.
+  document.querySelectorAll("[data-more]").forEach(function (list) {
+    var items = Array.prototype.slice.call(list.children);
+    if (items.length <= SHOWN) return;
+    items.slice(SHOWN).forEach(function (item) { item.hidden = true; });
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "more";
+    button.textContent = "See more (" + (items.length - SHOWN) + " more)";
+    button.addEventListener("click", function () {
+      items.forEach(function (item) { item.hidden = false; });
+      button.remove();
+    });
+    var anchor = list.tagName === "TBODY" ? (list.closest(".table-scroll") || list.closest("table")) : list;
+    anchor.insertAdjacentElement("afterend", button);
+  });
+
   function cellValue(row, index) {
     var cell = row.children[index];
     var v = cell.getAttribute("data-sort-value");
