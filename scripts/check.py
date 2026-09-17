@@ -466,13 +466,54 @@ def step_1_13(args):
     return 0 if ok else 1
 
 
+# ---------------------------------------------------------------- step 1.14
+
+def step_1_14(args):
+    """Every [method] quote in 06_SOURCES.md appears verbatim in the HTML-unescaped text of site/method.html,
+    and every [method] link appears as an href. Only runs of spaces are normalised; quotes are never altered."""
+    import html
+    import html5lib
+    import re
+
+    sources = (ROOT / "build-pack" / "06_SOURCES.md").read_text(encoding="utf-8").splitlines()
+    quotes, links = [], []
+    for line in sources:
+        if "`[method]`" not in line:
+            continue
+        m = re.match(r'\s*\d+\.\s+`\[method\]`.*?—\s+(https?://\S+)', line)
+        if m:
+            links.append(m.group(1))
+            continue
+        m = re.match(r'\s*-\s+`\[method\]`\s+"(.*)"', line)
+        if m:
+            # the quote is the text inside the first pair of straight double quotes after the tag
+            quotes.append(re.match(r'([^"]*)"', m.group(1) + '"').group(1))
+
+    raw = (ROOT / "site" / "method.html").read_text(encoding="utf-8")
+    tree = html5lib.parse(raw, namespaceHTMLElements=False)
+    text = re.sub(r" +", " ", html.unescape(" ".join(tree.find(".//body").itertext())).replace("\n", " "))
+    hrefs = {el.get("href") for el in tree.iter("a") if el.get("href")}
+
+    missing_quotes = [q for q in quotes if re.sub(r" +", " ", q) not in text]
+    missing_links = [u for u in links if u not in hrefs]
+    print(f"[method] quotes in 06_SOURCES.md: {len(quotes)}; missing from method.html: {len(missing_quotes)}")
+    for q in quotes:
+        print(f"    {'MISSING' if q in missing_quotes else 'ok     '} {q}")
+    print(f"[method] links in 06_SOURCES.md: {len(links)}; missing as href: {len(missing_links)}")
+    for u in links:
+        print(f"    {'MISSING' if u in missing_links else 'ok     '} {u}")
+    ok = not missing_quotes and not missing_links
+    print("PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
+
 def read_json_file(path):
     import json
     with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 
-STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13}
+STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14}
 
 
 def main():
