@@ -86,7 +86,7 @@ Jaimin will have:
 
 ## Step 4 — Automate the collector
 
-- [ ] **1.6 Write `.github/workflows/poll.yml`** per `01_SPEC.md` §9.3. Reference:
+- [x] **1.6 Write `.github/workflows/poll.yml`** per `01_SPEC.md` §9.3. Reference:
   ```yaml
   name: poll
   on:
