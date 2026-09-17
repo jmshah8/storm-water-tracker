@@ -8,6 +8,7 @@ successful run (GitHub API); if that cannot be read, the footer says when the di
 Exit codes: 0 ok, 1 build failed (e.g. an event page slug collision that cannot be resolved), 2 network error.
 """
 import argparse
+import math
 import os
 import re
 import shutil
@@ -176,9 +177,60 @@ def latest_workflow_run(workflow_file):
     return runs[0]["run_started_at"] if runs else None
 
 
+# ---------------------------------------------------------------- hero visual
+
+HERO_WIDTH, HERO_HEIGHT, HERO_PAD = 900, 1100, 20
+HERO_MAX_DASHES = 4500
+HERO_LABEL = ("Storm overflows in England drawn as dashes; highlighted dashes are dry day spills in the last 30 days")
+FAINT, FLAG = "#4a4a4f", "#d9b26a"  # --faint and --flag (01_SPEC.md §7.1); an <img> cannot read CSS variables
+
+
+def valid_coords(o):
+    try:
+        lat, lon = float(o["latitude"]), float(o["longitude"])
+    except (KeyError, ValueError):
+        return None
+    return (lat, lon) if -90 <= lat <= 90 and -180 <= lon <= 180 else None
+
+
+def write_hero(overflows, rows, today, launch_day, path):
+    """England as dashes at overflow coordinates (01_SPEC.md §7.5, plan step 1.12). Returns (dashes, flagged)."""
+    points = {k: valid_coords(o) for k, o in overflows.items()}
+    points = {k: p for k, p in points.items() if p}
+    mean_lat = sum(p[0] for p in points.values()) / len(points)
+    kx = math.cos(math.radians(mean_lat))
+    xs = [p[1] * kx for p in points.values()]
+    ys = [p[0] for p in points.values()]
+    scale = min((HERO_WIDTH - 2 * HERO_PAD) / (max(xs) - min(xs)), (HERO_HEIGHT - 2 * HERO_PAD) / (max(ys) - min(ys)))
+    off_x = (HERO_WIDTH - (max(xs) - min(xs)) * scale) / 2
+    off_y = (HERO_HEIGHT - (max(ys) - min(ys)) * scale) / 2
+
+    def project(lat, lon):
+        return off_x + (lon * kx - min(xs)) * scale, off_y + (max(ys) - lat) * scale
+
+    _, _, start, end = periods(today, launch_day)[0]
+    flagged = sorted({r["overflow_key"] for r in rows if r["verdict"] == "dry_day" and in_period(r, start, end)
+                      and r["overflow_key"] in points})
+    keys = sorted(points)
+    step = math.ceil(len(keys) / HERO_MAX_DASHES)
+    sample = [k for k in keys[::step] if k not in set(flagged)]
+    lines = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {HERO_WIDTH} {HERO_HEIGHT}" role="img" '
+             f'aria-label="{HERO_LABEL}">', f'<g fill="{FAINT}">']
+    for k in sample:
+        x, y = project(*points[k])
+        lines.append(f'<rect x="{x - 1.5:.1f}" y="{y - 0.5:.1f}" width="3" height="1"/>')
+    lines += ["</g>", f'<g fill="{FLAG}">']
+    for k in flagged:
+        x, y = project(*points[k])
+        lines.append(f'<rect x="{x - 2.5:.1f}" y="{y - 0.5:.1f}" width="5" height="1"/>')
+    lines += ["</g>", "</svg>"]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return len(sample), len(flagged)
+
+
 # ---------------------------------------------------------------- build
 
-def build(out_dir):
+def build(out_dir, hero_only=False):
     data = ROOT / "data"
     meta = read_json(data / "meta.json")
     overflows = {r["overflow_key"]: r for r in read_csv(data / "overflows.csv")}
@@ -196,6 +248,11 @@ def build(out_dir):
     launch_utc = meta["launch_utc"]
     launch_day = date.fromisoformat(launch_utc[:10])
     site_url = meta["site_url"]
+
+    hero = write_hero(overflows, rows, today, launch_day, ROOT / "static" / "england-overflows.svg")
+    print(f"hero: {hero[0]} dashes, {hero[1]} flagged (dry day spills in the last 30 days)")
+    if hero_only:
+        return 0
 
     for r in rows:
         r["overflow"] = overflows.get(r["overflow_key"], {})
@@ -356,9 +413,12 @@ def build(out_dir):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", default=str(ROOT / "site"))
+    ap.add_argument("--hero-only", action="store_true", help="only regenerate static/england-overflows.svg")
     args = ap.parse_args()
     try:
-        n = build(Path(args.out))
+        n = build(Path(args.out), hero_only=args.hero_only)
+        if args.hero_only:
+            return 0
     except ValueError as e:
         print(f"build failed: {e}", file=sys.stderr)
         return 1
