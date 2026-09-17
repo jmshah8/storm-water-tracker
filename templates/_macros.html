@@ -1,0 +1,80 @@
+{% macro league_tables(league, periods, root, group) %}
+<div class="toggle" data-toggle-group="{{ group }}" role="group" aria-label="Period">
+  <button type="button" data-period="last30" aria-pressed="true">Last 30 days</button>
+  <button type="button" data-period="year" aria-pressed="false">This year</button>
+</div>
+{% for key, label, start, end in periods %}
+{% set lg = league[key] %}
+<div data-period-panel="{{ key }}" data-group="{{ group }}">
+  <p class="period-note">{{ label }}{% if start <= end %}: {{ start|d }} to {{ end|d }}{% else %}: no complete UTC day since launch yet{% endif %}.</p>
+  <div class="table-scroll">
+  <table data-sortable data-league="{{ key }}">
+    <thead>
+      <tr>
+        <th scope="col" data-sort><button type="button">Company</button></th>
+        <th scope="col" class="num" data-sort><button type="button">Overflows</button></th>
+        <th scope="col" class="num" data-sort><button type="button">Events</button></th>
+        <th scope="col" class="num" data-sort><button type="button">Dry day spills</button></th>
+        <th scope="col" class="num" data-sort><button type="button">Dry day per 100 overflows</button></th>
+        <th scope="col" data-sort><button type="button">Last dry day spill</button></th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in lg.rows %}
+      <tr data-company="{{ row.slug }}">
+        <th scope="row"><a href="{{ root }}companies/{{ row.slug }}.html">{{ row.name }}</a></th>
+        <td class="num" data-metric="overflows" data-value="{{ row.overflows }}">{{ row.overflows }}</td>
+        <td class="num" data-metric="events" data-value="{{ row.events }}">{{ row.events }}</td>
+        <td class="num flag" data-metric="dry" data-value="{{ row.dry }}">{{ row.dry }}</td>
+        <td class="num" data-metric="per100" data-value="{{ row.per100 }}">{{ row.per100 }}</td>
+        <td data-metric="last_dry" data-value="{{ row.last_dry }}" data-sort-value="{{ row.last_dry }}">{{ row.last_dry_text or '—' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endfor %}
+{% endmacro %}
+
+{% macro badge(ev) %}
+{% if ev.verdict == 'dry_day' %}
+<span class="badge badge--dry">Dry day spill · EA definition</span>
+<p class="subline">Potential breach; not confirmed. {% if ev.n_readings_present == '192' and ev.is_final == 'true' %}Complete rain data (192 of 192 readings).{% else %}Provisional — rain data {{ ev.n_readings_present }} of 192 readings.{% endif %}</p>
+{% elif ev.verdict == 'pending_rain_data' %}
+<span class="badge">Rain check pending</span>
+<p class="subline">Rainfall data for this window is not yet available from the Environment Agency.</p>
+{% elif ev.verdict == 'not_dry' %}
+<span class="badge">Not a dry day</span>
+<p class="subline">Rain recorded in the window: {{ ev.rain_window_total_mm }} mm.</p>
+{% elif ev.verdict == 'no_gauge_within_10km' %}
+<span class="badge">No gauge within 10 km</span>
+<p class="subline">Cannot be classified under this method.</p>
+{% elif ev.verdict == 'insufficient_readings' %}
+<span class="badge">Insufficient rain data</span>
+<p class="subline">Nearest gauges returned fewer than 176 of 192 readings.</p>
+{% endif %}
+{% endmacro %}
+
+{% macro event_list(events, root) %}
+<ul class="event-list">
+{% for ev in events %}
+  <li><a class="{{ 'dry' if ev.verdict == 'dry_day' else 'pending' }}" href="{{ root }}events/{{ ev.slug }}.html">
+    <span>{{ ev.start_utc|dt }}<small>{{ 'Dry day spill' if ev.verdict == 'dry_day' else 'Rain check pending' }}</small></span>
+    <span>{{ ev.company_name }} · {{ ev.overflow.source_id }}<small>{{ ev.watercourse or 'Watercourse not published' }}</small></span>
+    <span>Lasted {{ ev.duration_text }}</span>
+    <span>{% if ev.gauge_id %}{{ ev.rain_window_total_mm }} mm in 48 h<small>{{ ev.gauge_label }}, {{ ev.gauge_distance_km }} km</small>{% else %}Awaiting rain data{% endif %}</span>
+  </a></li>
+{% endfor %}
+</ul>
+{% endmacro %}
+
+{% macro pager(page_no, n_pages, page_name) %}
+{% if n_pages > 1 %}
+<nav class="pager" aria-label="Pages">
+  {% if page_no > 1 %}<a href="{{ page_name(page_no - 1) }}">← Newer</a>{% endif %}
+  <span class="muted">Page {{ page_no }} of {{ n_pages }}</span>
+  {% if page_no < n_pages %}<a href="{{ page_name(page_no + 1) }}">Older →</a>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}

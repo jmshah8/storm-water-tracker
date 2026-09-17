@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Companies{% endblock %}
+{% block description %}Storm overflow events and dry day spills by water company in England.{% endblock %}
+{% block main %}
+<div class="wrap">
+  <div class="page-head">
+    <h1>Companies</h1>
+    <p>Events and dry day spills for each of the ten companies publishing to the National Storm Overflow Hub, counted from {{ launch_date }}, when this record began. Choose a company for its monthly figures and every dry day spill.</p>
+  </div>
+  {{ m.league_tables(league, periods, root, 'companies') }}
+</div>
+{% endblock %}

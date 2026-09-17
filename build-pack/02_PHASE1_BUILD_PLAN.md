@@ -148,7 +148,7 @@ Jaimin will have:
 
 ## Step 7 — The site
 
-- [ ] **1.11 Templates, CSS and `scripts/build_site.py`** per `01_SPEC.md` §7–8. Build into `site/`. Every number shown on a page must also be present as a `data-value` attribute on its element (used by the check). Period logic: "last 30 days" = the 30 UTC days ending yesterday; "this year" = from max(1 Jan, `launch_utc`) — label accordingly. Suppress any period before `launch_utc`.
+- [x] **1.11 Templates, CSS and `scripts/build_site.py`** per `01_SPEC.md` §7–8. Build into `site/`. Every number shown on a page must also be present as a `data-value` attribute on its element (used by the check). Period logic: "last 30 days" = the 30 UTC days ending yesterday; "this year" = from max(1 Jan, `launch_utc`) — label accordingly. Suppress any period before `launch_utc`.
   Run `python scripts/build_site.py`.
   **CHECK 1.11:** `python scripts/check.py --step 1.11` does all of: (a) parse every HTML file with `html5lib` in strict mode — zero parse errors; (b) every internal `href`/`src` is **relative** (none starts with `/`) and resolves to a file in `site/`; (c) apart from `events/index*.html`, there is one `events/*.html` per `dry_day` and per `pending_rain_data` event and no others; (d) recompute the four index tiles and the league table from the CSVs and compare with the `data-value` attributes — exact match; (e) grep the whole `site/` for the words `illegal`, `criminal`, `guilty` (case-insensitive) — zero hits; (f) every page has `<title>`, meta description, and `noindex`. Commit: `step 1.11: site builder`.
 

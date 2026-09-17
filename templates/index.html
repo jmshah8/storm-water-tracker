@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}Overview{% endblock %}
+{% block description %}Every storm-overflow discharge in England, checked against Environment Agency rainfall using the EA's own dry-day definition.{% endblock %}
+{% block main %}
+<section class="hero" aria-labelledby="hero-title">
+  {% if hero_svg %}
+  <div class="hero-visual"><img src="{{ root }}static/england-overflows.svg" alt="Storm overflows in England drawn as dashes; highlighted dashes are dry day spills in the last 30 days"></div>
+  {% endif %}
+  <div class="wrap">
+    <div class="hero-text">
+      <h1 class="hero-title" id="hero-title">Spilling when it isn't raining.</h1>
+      <p class="hero-sub">Every storm-overflow discharge in England, checked against Environment Agency rainfall using the EA's own dry-day definition.</p>
+    </div>
+    <div class="hero-aside">
+      <span class="label">England · <span data-metric="hero-overflows" data-value="{{ n_overflows }}">{{ n_overflows|thin }}</span> storm overflows</span>
+      <p>Companies must publish each discharge within an hour. We record them all and flag the ones that started on a dry day. Evidence shown for every flag.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="tiles">
+      <div class="tile tile--flag"><span class="label">Dry day spills · last 30 days</span><span class="value" data-metric="tile-dry-last30" data-value="{{ tiles.last30.dry }}">{{ tiles.last30.dry }}</span></div>
+      <div class="tile tile--flag"><span class="label">Dry day spills · this year</span><span class="value" data-metric="tile-dry-year" data-value="{{ tiles.year.dry }}">{{ tiles.year.dry }}</span></div>
+      <div class="tile"><span class="label">Events recorded · last 30 days</span><span class="value" data-metric="tile-events-last30" data-value="{{ tiles.last30.events }}">{{ tiles.last30.events }}</span></div>
+      <div class="tile"><span class="label">Overflows tracked</span><span class="value" data-metric="tile-overflows" data-value="{{ n_overflows }}">{{ n_overflows }}</span></div>
+    </div>
+    <p class="period-note" style="margin-top: 24px">Counts start on {{ launch_date }}, when this record began, and count events by the UTC day they started. The last 30 days end yesterday; this year runs to today.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <h2>Companies</h2>
+    {{ m.league_tables(league, periods, root, 'overview') }}
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <h2>Latest dry day spills</h2>
+    {% if latest %}
+    <p class="period-note">The {{ latest|length }} most recent, newest first, including events recorded when this site began on {{ launch_date }} (the latest known event per overflow at that time).</p>
+    {{ m.event_list(latest, root) }}
+    {% else %}
+    <p class="muted">No dry day spills recorded yet.</p>
+    {% endif %}
+    <p style="margin-top: 16px"><a href="{{ root }}events/index.html">All flagged and pending events</a></p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap grid-2">
+    <h2>How this works</h2>
+    <div>
+      <p>Every ten minutes we read each water company's published storm-overflow feed and record each discharge's start and end time. For each discharge we take the Environment Agency rain gauge nearest the overflow, within 10 km, that has near-complete readings. We add up the rain recorded on the day the discharge started and the day before. If that total is 0.25 mm or less, the discharge is flagged as a dry day spill under the Environment Agency's definition, and the evidence is shown on its page.</p>
+      <p><a href="{{ root }}method.html">Read the full method</a></p>
+    </div>
+  </div>
+</section>
+{% endblock %}

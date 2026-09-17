@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% import "_macros.html" as m with context %}
+{% block title %}{{ ev.company_name }} {{ o.source_id }}, {{ ev.start_utc|dt }}{% endblock %}
+{% block description %}Storm overflow {{ o.source_id }} ({{ ev.company_name }}) discharge starting {{ ev.start_utc|dt }}: verdict and rainfall evidence under the Environment Agency dry day definition.{% endblock %}
+{% block main %}
+<div class="wrap">
+  <div class="page-head event-head{% if ev.verdict == 'dry_day' %} event-head--dry{% endif %}">
+    <span class="label">{{ ev.company_name }} · overflow {{ o.source_id }}</span>
+    <h1>{{ ev.watercourse or 'Watercourse not published' }}</h1>
+    {{ m.badge(ev) }}
+  </div>
+
+  <section class="section grid-2" style="padding-top: 0; border-top: 0">
+    <div>
+      <h2>The discharge</h2>
+      <dl class="fields">
+        <dt>Overflow ID</dt><dd>{{ o.source_id }}</dd>
+        <dt>Company</dt><dd>{{ ev.company_name }}</dd>
+        <dt>Receiving watercourse</dt><dd>{{ ev.watercourse or 'Not published' }}</dd>
+        <dt>Coordinates</dt><dd>{% if o.latitude %}<span data-value="{{ o.latitude }}">{{ o.latitude }}</span>, <span data-value="{{ o.longitude }}">{{ o.longitude }}</span> · <a href="https://www.openstreetmap.org/?mlat={{ o.latitude }}&amp;mlon={{ o.longitude }}#map=16/{{ o.latitude }}/{{ o.longitude }}">OpenStreetMap</a>{% else %}Not published{% endif %}</dd>
+        <dt>Started</dt><dd>{{ ev.start_utc|dts }}</dd>
+        <dt>Ended</dt><dd>{% if ev.end_utc %}{{ ev.end_utc|dts }}{% if event_detail.end_observed == 'false' %} (inferred: the overflow's next discharge began then; the company's own end time was not seen){% endif %}{% else %}No end time published yet{% endif %}</dd>
+        <dt>Length</dt><dd><strong data-metric="duration-seconds" data-value="{{ ev.duration_s if ev.duration_s is not none else '' }}">{{ ev.duration_text }}</strong>{% if ev.end_utc %} <span class="muted">(from the published start and end times)</span>{% endif %}</dd>
+      </dl>
+    </div>
+    <div>
+      <h2>The rain evidence</h2>
+      <dl class="fields">
+        <dt>Window</dt><dd>{{ ev.window_start_utc|dt }} to {{ ev.window_end_utc|dt }} (48 hours: the day the discharge started and the day before)</dd>
+        {% if ev.gauge_id %}
+        <dt>Gauge used</dt><dd>{{ ev.gauge_label }} <span class="muted">({{ ev.gauge_id }})</span></dd>
+        <dt>Distance</dt><dd><span data-value="{{ ev.gauge_distance_km }}">{{ ev.gauge_distance_km }}</span> km</dd>
+        <dt>Rain on {{ ev.day_utc|d }}</dt><dd><span data-value="{{ ev.rain_day_mm }}">{{ ev.rain_day_mm }}</span> mm</dd>
+        <dt>Rain on {{ prev_day|d }}</dt><dd><span data-value="{{ ev.rain_prev24_mm }}">{{ ev.rain_prev24_mm }}</span> mm</dd>
+        <dt>Window total</dt><dd><strong data-value="{{ ev.rain_window_total_mm }}">{{ ev.rain_window_total_mm }} mm</strong></dd>
+        <dt>Largest 15-minute reading</dt><dd><span data-value="{{ ev.rain_window_max15_mm }}">{{ ev.rain_window_max15_mm }}</span> mm</dd>
+        <dt>Readings present</dt><dd><span data-value="{{ ev.n_readings_present }}">{{ ev.n_readings_present }}</span> of {{ ev.n_readings_expected }}</dd>
+        {% if quality %}<dt>Quality of readings</dt><dd>{{ quality.n_unchecked }} unchecked · {{ quality.n_good }} good · {{ quality.n_other_quality }} other</dd>{% endif %}
+        {% else %}
+        <dt>Gauge used</dt><dd>None yet: no gauge within 10 km has at least 176 of the 192 readings for this window.</dd>
+        {% endif %}
+        <dt>Rule version</dt><dd>{{ ev.rule_version }} (verdict based on the window total)</dd>
+        <dt>Classified</dt><dd>{{ ev.classified_utc|dt }}{% if ev.is_final == 'true' %} · final{% else %} · may change as rain data arrives{% endif %}</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>The rule</h2>
+    <blockquote><p>“{{ ea_rule }}”</p></blockquote>
+    <p class="muted">Environment Agency, “What are dry day spills?”, 28 August 2024. We apply it to the UTC day the discharge started: the verdict is a dry day spill only if the total rain in the 48-hour window is 0.25 mm or less. <a href="{{ root }}method.html">How the method works</a>.</p>
+  </section>
+
+  <section class="section">
+    <h2>Reproduce this</h2>
+    <div class="card">
+      {% if reproduce %}
+      {% for label, distance, url in reproduce %}
+      <p>{% if ev.gauge_id %}Every 15-minute reading for {{ label }} in this window, from the Environment Agency Hydrology API (times are UTC; add up the values):{% else %}Nearest gauge within 10 km: {{ label }}, {{ distance }} km. Its readings for this window, when available:{% endif %}</p>
+      <p class="url"><a href="{{ url }}">{{ url }}</a></p>
+      {% endfor %}
+      {% else %}
+      <p>No gauge lies within 10 km of this overflow.</p>
+      {% endif %}
+      <p>This event's row is in the <a href="{{ root }}data/classification/all_events_classified.csv">classified events CSV</a> as <span class="url">{{ ev.event_id }}</span>.</p>
+    </div>
+  </section>
+</div>
+{% endblock %}

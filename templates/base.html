@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Storm Water Tracker — {% block title %}{% endblock %}</title>
+<meta name="description" content="{% block description %}{% endblock %}">
+<meta name="robots" content="noindex">
+<meta name="swt-build-utc" content="{{ build_utc }}">
+<link rel="canonical" href="{{ site_url }}{{ '' if path == 'index.html' else path }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&amp;display=swap">
+<link rel="stylesheet" href="{{ root }}static/style.css">
+</head>
+<body>
+{% macro nav_link(key, href, text) %}<li><a href="{{ root }}{{ href }}"{% if active == key %} aria-current="page"{% endif %}>{{ text }}</a></li>{% endmacro %}
+<header class="nav{% if active == 'overview' %} nav--over{% endif %}">
+  <div class="wrap">
+    <a class="wordmark" href="{{ root }}index.html">
+      <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="0" y="2" width="16" height="1.5" fill="currentColor"/><rect x="0" y="6" width="12" height="1.5" fill="currentColor"/><rect x="0" y="10" width="8" height="1.5" fill="currentColor"/><rect x="0" y="14" width="4" height="1.5" fill="currentColor"/></svg>
+      storm water tracker
+    </a>
+    <nav aria-label="Main">
+      <ul class="nav-links">
+        {{ nav_link('overview', 'index.html', 'Overview') }}
+        {{ nav_link('companies', 'companies/index.html', 'Companies') }}
+        {{ nav_link('events', 'events/index.html', 'Events') }}
+        {{ nav_link('method', 'method.html', 'Method') }}
+        <li><a class="pill" href="{{ root }}data.html"{% if active == 'data' %} aria-current="page"{% endif %}>Data ↗</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+<main>
+{% block main %}{% endblock %}
+</main>
+<footer class="footer">
+  <div class="wrap">
+    <p>{{ footer.poll_label }}: {{ footer.poll }} · Rain data last updated: {{ footer.rain }} · Last classification change: {{ footer.classified }}</p>
+    <p>Storm overflow data: the ten water companies via the National Storm Overflow Hub (Stream), CC BY 4.0 (ST Connect’s feed publishes no licence). Rainfall: Environment Agency Hydrology API, Open Government Licence v3.0.</p>
+    <p><a href="{{ root }}about.html">About</a> · A personal project. Not affiliated with any water company, regulator or campaign.</p>
+  </div>
+</footer>
+<script src="{{ root }}static/site.js"></script>
+</body>
+</html>

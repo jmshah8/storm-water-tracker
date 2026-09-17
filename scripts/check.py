@@ -234,7 +234,156 @@ def step_1_9(args):
     return 0 if ok else 1
 
 
-STEPS = {"1.8": step_1_8, "1.9": step_1_9}
+# ---------------------------------------------------------------- step 1.11
+
+FORBIDDEN_WORDS = ("illegal", "criminal", "guilty")
+LEAGUE_COMPANIES = ["anglian", "northumbrian", "severn-trent", "southern", "south-west", "thames",
+                    "united-utilities", "wessex", "yorkshire", "st-connect"]
+
+
+def step_1_11(args):
+    import collections
+    import html5lib
+    import re
+    from html5lib.html5parser import ParseError
+
+    site = ROOT / "site"
+    ok = True
+    pages = sorted(site.rglob("*.html"))
+    parser = html5lib.HTMLParser(strict=True, namespaceHTMLElements=False)
+    trees, parse_errors = {}, []
+    for page in pages:
+        try:
+            trees[page] = parser.parse(page.read_text(encoding="utf-8"))
+        except ParseError as e:
+            parse_errors.append((page.relative_to(site).as_posix(), str(e)))
+    print(f"(a) pages parsed: {len(pages)}; html5lib strict parse errors: {len(parse_errors)}")
+    for rel, err in parse_errors[:10]:
+        print(f"    {rel}: {err}")
+    ok &= not parse_errors
+
+    root_relative, broken, checked = [], [], 0
+    for page, tree in trees.items():
+        for el in tree.iter():
+            for attr in ("href", "src"):
+                url = el.get(attr)
+                if url is None or re.match(r"^(https?:|mailto:|#)", url):
+                    continue
+                checked += 1
+                if url.startswith("/"):
+                    root_relative.append((page.relative_to(site).as_posix(), url))
+                    continue
+                target = (page.parent / url.split("#")[0].split("?")[0]).resolve()
+                if not target.is_file() or site.resolve() not in target.parents:
+                    broken.append((page.relative_to(site).as_posix(), url))
+    print(f"(b) internal href/src checked: {checked}; root-relative: {len(root_relative)}; unresolved: {len(broken)}")
+    for rel, url in (root_relative + broken)[:10]:
+        print(f"    {rel}: {url}")
+    ok &= not root_relative and not broken
+
+    rows = read_csv(ROOT / "data" / "classification" / "all_events_classified.csv")
+    expected_ids = {r["event_id"] for r in rows if r["verdict"] in ("dry_day", "pending_rain_data")}
+    safe = collections.defaultdict(list)
+    for eid in sorted(expected_ids):
+        safe[re.sub(r"[^A-Za-z0-9_-]", "_", eid)].append(eid)
+    expected_files = {f"{base}.html" if i == 0 else f"{base}-{i + 1}.html"
+                      for base, eids in safe.items() for i, _ in enumerate(eids)}
+    actual_files = {p.name for p in (site / "events").glob("*.html") if not re.match(r"^index(-\d+)?\.html$", p.name)}
+    missing, extra = expected_files - actual_files, actual_files - expected_files
+    print(f"(c) dry_day + pending_rain_data events: {len(expected_ids)}; event pages: {len(actual_files)}; "
+          f"missing: {len(missing)}; extra: {len(extra)}")
+    ok &= not missing and not extra
+
+    def metrics(page):
+        tree = trees[site / page]
+        out = {}
+        for el in tree.iter():
+            if el.get("data-metric") and el.get("data-value") is not None:
+                out.setdefault(el.get("data-metric"), el.get("data-value"))
+        return out, tree
+
+    meta = read_json_file(ROOT / "data" / "meta.json")
+    overflows = read_csv(ROOT / "data" / "overflows.csv")
+    index_tree = trees[site / "index.html"]
+    build_utc = next(el.get("content") for el in index_tree.iter() if el.get("name") == "swt-build-utc")
+    today = date.fromisoformat(build_utc[:10])
+    launch_day = date.fromisoformat(meta["launch_utc"][:10])
+    ranges = {"last30": (max(today - timedelta(days=30), launch_day), today - timedelta(days=1)),
+              "year": (max(date(today.year, 1, 1), launch_day), today)}
+
+    def within(r, key):
+        start, end = ranges[key]
+        return start.isoformat() <= r["day_utc"] <= end.isoformat()
+
+    expected = {
+        "tile-dry-last30": sum(1 for r in rows if r["verdict"] == "dry_day" and within(r, "last30")),
+        "tile-dry-year": sum(1 for r in rows if r["verdict"] == "dry_day" and within(r, "year")),
+        "tile-events-last30": sum(1 for r in rows if within(r, "last30")),
+        "tile-overflows": len(overflows),
+        "hero-overflows": len(overflows),
+    }
+    shown, _ = metrics("index.html")
+    mismatches = [(k, v, shown.get(k)) for k, v in expected.items() if shown.get(k) != str(v)]
+    print(f"(d) build date {today}; last30 {ranges['last30'][0]}..{ranges['last30'][1]}; "
+          f"year {ranges['year'][0]}..{ranges['year'][1]}")
+    print("    tiles expected:", expected)
+    print("    tiles shown:   ", {k: shown.get(k) for k in expected})
+
+    n_overflows = collections.Counter(o["company_slug"] for o in overflows)
+    last_dry = {}
+    for r in sorted(rows, key=lambda r: r["start_utc"]):
+        if r["verdict"] == "dry_day":
+            last_dry[r["company_slug"]] = r["day_utc"]
+    league_checked = 0
+    for page in ("index.html", "companies/index.html"):
+        tree = trees[site / page]
+        for table in (el for el in tree.iter("table") if el.get("data-league")):
+            key = table.get("data-league")
+            for tr in (el for el in table.iter("tr") if el.get("data-company")):
+                slug = tr.get("data-company")
+                in_p = [r for r in rows if r["company_slug"] == slug and within(r, key)]
+                dry = sum(1 for r in in_p if r["verdict"] == "dry_day")
+                exp = {"overflows": str(n_overflows[slug]), "events": str(len(in_p)), "dry": str(dry),
+                       "per100": f"{dry * 100 / n_overflows[slug]:.1f}" if n_overflows[slug] else "0.0",
+                       "last_dry": last_dry.get(slug, "")}
+                got = {td.get("data-metric"): td.get("data-value") for td in tr.iter("td")}
+                for k, v in exp.items():
+                    league_checked += 1
+                    if got.get(k) != v:
+                        mismatches.append((f"{page} {key} {slug} {k}", v, got.get(k)))
+    print(f"    league table cells checked: {league_checked}; mismatches (tiles + league): {len(mismatches)}")
+    for m in mismatches[:10]:
+        print(f"    {m[0]}: expected {m[1]!r}, shown {m[2]!r}")
+    ok &= not mismatches and league_checked == 2 * 2 * len(LEAGUE_COMPANIES) * 5
+
+    hits = []
+    for path in site.rglob("*"):
+        if path.is_file() and path.suffix in (".html", ".csv", ".js", ".css", ".svg", ".txt", ".json"):
+            text = path.read_text(encoding="utf-8", errors="replace").lower()
+            hits += [(path.relative_to(site).as_posix(), w) for w in FORBIDDEN_WORDS if w in text]
+    print(f"(e) forbidden words {FORBIDDEN_WORDS} in site/: {len(hits)} hits {hits[:5]}")
+    ok &= not hits
+
+    missing_head = []
+    for page, tree in trees.items():
+        title = next((el.text for el in tree.iter("title")), "") or ""
+        metas = {el.get("name"): el.get("content") for el in tree.iter("meta") if el.get("name")}
+        if not title.strip() or not (metas.get("description") or "").strip() or metas.get("robots") != "noindex":
+            missing_head.append(page.relative_to(site).as_posix())
+    print(f"(f) pages missing <title>, meta description or noindex: {len(missing_head)} {missing_head[:5]}")
+    ok &= not missing_head
+
+    print("PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
+
+def read_json_file(path):
+    import json
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11}
 
 
 def main():

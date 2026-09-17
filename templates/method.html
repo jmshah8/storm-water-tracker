@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Method{% endblock %}
+{% block description %}How Storm Water Tracker applies the Environment Agency's dry day definition to every storm overflow discharge, with every source quoted, linked and dated.{% endblock %}
+{% block main %}
+<div class="wrap prose">
+  <div class="page-head">
+    <h1>Method</h1>
+    <p>How each discharge is recorded and classified, what the method can and cannot tell you, and every source it relies on.</p>
+  </div>
+
+  <h2>The definition</h2>
+  <blockquote><p>“{{ ea_rule }}”</p></blockquote>
+  <p>Environment Agency blog, <a href="https://environmentagency.blog.gov.uk/2024/08/28/what-are-dry-day-spills">“What are dry day spills?”</a>, 28 August 2024. The same post says “Storm overflows should not spill on dry days, but there are exceptions.” and that the Environment Agency uses “rainfall data from local rain gauges as well as rainfall radar information”; when it finds dry day spills it will “treat them as a potential breach until we have confirmed through further investigation”. Every classification on this site implements that one sentence, and nothing else.</p>
+
+  <h2>How we apply it</h2>
+  <ul>
+    <li><strong>What is classified.</strong> The start of each discharge. The day that matters is the UTC calendar day on which the discharge started. A discharge that started in rain and carried on into a dry day is not flagged.</li>
+    <li><strong>The window.</strong> “That day and the preceding 24 hours” is read as the 48 hours from 00:00 UTC on the day before the start to 00:00 UTC on the day after it.</li>
+    <li><strong>The rain.</strong> We add up every 15-minute rainfall total recorded in that window at the chosen rain gauge.</li>
+    <li><strong>The verdict.</strong> The discharge is a dry day spill if, and only if, the window total is 0.25 mm or less. Every flag carries the words “Potential breach; not confirmed.”, because only the Environment Agency can confirm a breach.</li>
+    <li><strong>Other outcomes.</strong> “Not a dry day” when the total is above 0.25 mm; “Rain check pending” while rainfall may still arrive; “Insufficient rain data” when no gauge within 10 km returned enough readings in time; “No gauge within 10 km” when there is none, which cannot be classified under this method.</li>
+    <li><strong>Length.</strong> Each flagged discharge shows how long it lasted, worked out from the start and end times the company published (both to the second). If a company has not published a valid end time, the page says so instead.</li>
+  </ul>
+
+  <h2>Why “total of 0.25 mm or less”</h2>
+  <p>The Environment Agency's sentence can be read two ways: no single reading above 0.25 mm, or no more than 0.25 mm of rain in all. We use the total. It is the stricter reading for a flag: a window with, say, three readings of 0.2 mm has no single reading above 0.25 mm but a total of 0.6 mm, so it is flagged under the other reading and not under ours. Using the total therefore flags fewer discharges and minimises false flags. Both numbers, the window total and the largest single 15-minute reading, are published for every event, so the other reading can be recomputed from our data.</p>
+
+  <h2>Which rain gauge</h2>
+  <p>We use the Environment Agency's rain gauges from its Hydrology API, which publishes 15-minute rainfall totals. For each overflow we consider every gauge within 10 km (straight-line distance from the coordinates the company publishes) and use the nearest one that returned at least 176 of the 192 readings expected over the 48 hours (91.7%). The 10 km limit is our own assumption, chosen so that the gauge is reasonably representative of rain at the overflow; the Environment Agency does not publish a distance. Overflows with no gauge within 10 km are shown as “No gauge within 10 km” and are not classified. <span data-value="{{ n_no_coords }}">{{ n_no_coords }}</span> overflows in the feeds currently have no coordinates; they cannot be matched to a gauge and are counted the same way.</p>
+
+  <h2>Time zone</h2>
+  <p>We use UTC calendar days. The Environment Agency's definition does not specify a time zone; EDM data is reported in GMT. The company feeds give times as UTC. The Hydrology API gives rainfall times without a time zone, so we checked: on 15 September 2026, a British Summer Time day, eight gauges with 9.3 to 38.2 mm of rain matched the Environment Agency's real-time rainfall API (whose times are marked UTC) on 96 of 96 fifteen-minute readings with no offset, and disagreed by 10 to 35 mm when shifted by one hour. Hydrology API times are therefore UTC.</p>
+
+  <h2>Provisional and final verdicts</h2>
+  <p>A verdict is final when it can no longer change: when there is no gauge within 10 km; when a dry day or not-dry verdict is based on all 192 of 192 readings and at least 72 hours have passed since the window ended; or, with any number of readings, once 14 days have passed since the window ended. Until then a verdict is provisional and is re-checked every hour, because the Environment Agency sends some readings late, and a flag says how many of the 192 readings it is based on. Every change between “dry day spill” and “not a dry day” is recorded in a public log (<a href="{{ root }}data/classification/verdict_changes.csv">verdict_changes.csv</a>).</p>
+
+  <h2>How long it takes</h2>
+  <p>Companies must publish a discharge within an hour of it starting, and we read the feeds every ten minutes, so a discharge usually appears here within about an hour. The rainfall arrives later: the Hydrology API was about half a day behind when this site began, and a verdict also has to wait until the 48-hour window has ended. A verdict therefore typically appears one to three days after the discharge started. While rain may still arrive (up to 72 hours after the window ends) the event shows “Rain check pending”. The site itself is republished on a schedule (at least weekly), so its figures can lag the data files by up to that long; the footer shows when each part of the data last changed.</p>
+
+  <h2>What this method can miss</h2>
+  <ul>
+    <li>The feeds show only each overflow's most recent discharge. If a discharge starts and ends between two of our ten-minute reads and another discharge starts before the next read, the first one is never seen.</li>
+    <li>If we never see a discharge's end, because the next discharge had already started when we looked, its end is taken as the start of the next one and marked as inferred.</li>
+    <li>Where a company publishes an end time earlier than the start time, we leave the end blank rather than guess. Where a monitor comes back online without a published time, the end of its offline period is the time we saw it back, and is labelled as such in the data.</li>
+    <li>A single gauge up to 10 km away can miss a local shower, or record one that missed the overflow. The rainfall radar comparison planned for this site is meant to catch such cases.</li>
+    <li>Monitors can be offline; an overflow that discharges while its monitor is offline does not appear in the feed.</li>
+  </ul>
+
+  <h2>When the record begins</h2>
+  <p>Our complete record begins on {{ launch_date }}; events before it are only the most recent event per overflow at launch. The Hub itself keeps no history: “The Hub does not have access to data from before its date of publication.” Company tables and monthly counts therefore start on {{ launch_date }}, and that month is labelled partial.</p>
+
+  <h2>Notes on the feeds</h2>
+  <p>ST Connect (Severn Trent's second licence area) publishes a placeholder feed containing <span data-value="{{ n_st_connect }}">{{ n_st_connect }}</span> record and no licence statement. We collect it as published.</p>
+  <p>The Hub's data page says: “Data provided on the map and in the API is near real-time data and has not undergone an audit process required to comply with the Environment Agency regulatory EDM Annual Return dataset.”</p>
+
+  <h2>Context</h2>
+  <p>The legal duty to publish comes from the Environment Act 2021: “The information referred to in subsection (1)(a) to (c) must be published within an hour of the discharge beginning; and that referred to in subsection (1)(d) within an hour of it ending.” The Environment Agency's annual Event Duration Monitoring returns count spills per overflow but have no per-event times, and the House of Commons Library notes that “there is at present no way to distinguish 'dry spills' (discharge of sewage at times of little to no rainfall, normally in breach of permit conditions) within this dataset.” The Environment Agency has said that “since January, all day dry spills – no matter how small – are now classified as pollution incidents”, and its permit guidance classes storm overflows as unsatisfactory when they “operate in dry weather conditions”. For 2025 it reported: “There were 291,492 spill events in 2025, a 35% reduction on 2024.” and “Every single storm overflow in England now has an event duration monitor fitted, providing the most complete national picture to date.” The Guardian reported: “In 2025, water companies in England and Wales reported 8,576 dry spill pollution discharges.”</p>
+
+  <h2>Other projects</h2>
+  <p>Other sites also publish storm overflow data. River Truth (Nexfort Data Limited) flags “dry-weather spills” per event using its own rule (“Spill occurred with effectively no rainfall in the preceding 24 h”), without a published rainfall threshold or source. Top of the Poops publishes annual monitoring data alongside the live feeds, with rainfall shown in aggregate. The Rivers Trust and Surfers Against Sewage publish maps and alerts of spills. This site differs in applying the Environment Agency's own definition exactly, keeping a forward record of every discharge, and publishing per-company totals, the evidence for each flag and the full data.</p>
+
+  <h2>Rule changelog</h2>
+  <ul>
+    <li><strong>dry-day-v1</strong> ({{ launch_date }}): first version, as described on this page. Any change to the window, threshold or gauge selection will get a new version, a new entry here, and a full re-classification.</li>
+  </ul>
+
+  <h2>Sources</h2>
+  <p>Each source was opened on the date shown; quotes are copied exactly.</p>
+  <ol class="sources">
+    <li><a href="https://environmentagency.blog.gov.uk/2024/08/28/what-are-dry-day-spills">Environment Agency blog, “What are dry day spills?”, 28 August 2024</a>. Fetched 14 and 15 Sep 2026.
+      <blockquote><p>“A dry day spill is when a storm overflow is used on a 'dry day' – which is defined as no rainfall above 0.25mm on that day and the preceding 24 hours.”</p><p>“Storm overflows should not spill on dry days, but there are exceptions.”</p><p>“rainfall data from local rain gauges as well as rainfall radar information”</p><p>“treat them as a potential breach until we have confirmed through further investigation”</p></blockquote></li>
+    <li><a href="https://www.gov.uk/government/news/environment-agency-storm-overflow-spill-data-for-2024">Environment Agency, storm overflow spill data for 2024, 27 March 2025</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“since January, all day dry spills – no matter how small – are now classified as pollution incidents”</p></blockquote></li>
+    <li><a href="https://www.gov.uk/government/publications/water-companies-environmental-permits-for-storm-overflows-and-emergency-overflows/water-companies-environmental-permits-for-storm-overflows-and-emergency-overflows">Environment Agency permit guidance for storm and emergency overflows, updated 13 September 2018</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“operate in dry weather conditions” (the first condition under which “The Environment Agency classes storm overflows as unsatisfactory when they:”)</p><p>“Start counting when the first discharge occurs. Any discharge (or discharges) in the first 12-hour block are counted as one spill. Any discharge (or discharges) in the next, and subsequent 24-hour blocks, are each counted as one additional spill per block.”</p></blockquote></li>
+    <li><a href="https://www.legislation.gov.uk/ukpga/2021/30/section/81">Environment Act 2021, section 81 (inserting section 141DA into the Water Industry Act 1991)</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“The information referred to in subsection (1)(a) to (c) must be published within an hour of the discharge beginning; and that referred to in subsection (1)(d) within an hour of it ending.”</p><p>“(a)that there has been a discharge from the storm overflow; (b)the location of the storm overflow; (c)when the discharge began; (d)when the discharge ended.”</p><p>“S. 81 in force at 1.1.2025 in so far as not already in force by S.I. 2024/639, reg. 4”</p></blockquote></li>
+    <li><a href="https://www.streamwaterdata.co.uk/pages/the-national-storm-overflow-hub">National Storm Overflow Hub (Stream)</a>. Fetched 15 Sep 2026 (text read from the page's ArcGIS item).
+      <blockquote><p>“The Hub shows near real-time discharge data from over 14,000 storm overflows in England.”</p><p>“The National Storm Overflow Hub (the Hub) brings together near real-time discharge data for all the storm overflows in England in one interactive map for the first time in the world.”</p></blockquote></li>
+    <li><a href="https://www.streamwaterdata.co.uk/pages/storm-overflows-data">Hub data page</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“Data provided on the map and in the API is near real-time data and has not undergone an audit process required to comply with the Environment Agency regulatory EDM Annual Return dataset.”</p><p>“Companies aim to transmit data on a discharge within an hour of the outfall operating.”</p></blockquote></li>
+    <li><a href="https://www.streamwaterdata.co.uk/pages/storm-overflows-faqs">Hub FAQ</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“The Hub does not have access to data from before its date of publication.”</p><p>“For the purposes of publishing EDM data, near real-time means within the hour.”</p><p>“While arrangements differ across companies, all monitors take measurements at least every 15 minutes.”</p></blockquote></li>
+    <li><a href="https://www.water.org.uk/news-views-publications/news/water-industry-launches-world-first-interactive-storm-overflows-map">Water UK launch release, 22 November 2024</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“The 'National Storm Overflows Hub' will show the operation of all 14,187 storm overflows in England.”</p><p>“An Application Programming Interface (API) has been created to allow third parties, such as charities and campaign groups, to access the data and broaden its reach by making it available via their websites.”</p></blockquote></li>
+    <li><a href="https://experience.arcgis.com/experience/cb89b71c060f40d394dca026445da4bc/">Hub live map</a>.</li>
+    <li>Company feed licences: <a href="https://www.arcgis.com/sharing/rest/content/items/216f455c4435450693cf1d0d0ecf6023?f=json">Thames Water item</a> and <a href="https://www.arcgis.com/sharing/rest/content/items/333c5c0600f94757b134b276ac4ad8b0?f=json">Anglian Water item</a>. Fetched 15 Sep 2026; re-checked for all ten companies on 16 Sep 2026 (nine CC BY 4.0; ST Connect none).
+      <blockquote><p>“Licensed under CC BY 4.0”</p><p>“The data used in this map started to be collected on 1st November 2024, if a monitor shows a null value in the history, that is because that monitor has not been triggered from that date.”</p><p>“Anglian Water Services' data is refreshed at intervals of 60 minutes.”</p></blockquote></li>
+    <li><a href="https://environment.data.gov.uk/hydrology/doc/reference">Environment Agency Hydrology API reference</a>. Fetched 15 Sep 2026. Open Government Licence v3.0. Source of the 15-minute rainfall totals used for every verdict.</li>
+    <li><a href="https://environment.data.gov.uk/flood-monitoring/doc/rainfall">Environment Agency real-time rainfall API</a>. Fetched 15 Sep 2026. Used to verify the time zone.
+      <blockquote><p>“The Environment Agency has approximately 1000 real time rain gauges which are connected by telemetry.”</p><p>“The data reported here gives accumulated totals for each 15 min period.”</p><p>“The data is typically transfered once or twice per day.” (sic)</p><p>“These APIs are provided as open data under the Open Government Licence with no requirement for registration.”</p></blockquote></li>
+    <li><a href="https://www.data.gov.uk/dataset/19f6064d-7356-466f-844e-d20ea10ae9fd/event-duration-monitoring-storm-overflows-annual-returns">Environment Agency Event Duration Monitoring annual returns</a>, files for 2020 to 2025, Open Government Licence, last updated 21 August 2026. Fetched 15 Sep 2026.</li>
+    <li><a href="https://www.gov.uk/government/news/fewer-and-shorter-storm-overflow-spills-in-2025-new-monitoring-data-shows">Environment Agency, 2025 monitoring data release, 26 March 2026</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“There were 291,492 spill events in 2025, a 35% reduction on 2024.”</p><p>“Every single storm overflow in England now has an event duration monitor fitted, providing the most complete national picture to date.”</p></blockquote></li>
+    <li><a href="https://researchbriefings.files.parliament.uk/documents/CBP-10027/CBP-10027.pdf">House of Commons Library, CBP-10027 “Sewage discharges”, 31 March 2026</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“there is at present no way to distinguish 'dry spills' (discharge of sewage at times of little to no rainfall, normally in breach of permit conditions) within this dataset.”</p></blockquote></li>
+    <li><a href="https://www.aol.co.uk/articles/dry-weather-sewage-discharges-soar-050045000.html">The Guardian (Sandra Laville), 1 September 2026, via AOL syndication</a>. Fetched 14 and 15 Sep 2026.
+      <blockquote><p>“In 2025, water companies in England and Wales reported 8,576 dry spill pollution discharges.”</p><p>“Between January and May this year alone, water companies discharged raw sewage into rivers and seas during dry weather 7,280 times.”</p><p>Water UK's response, as reported: “These are unverified figures, and it is too early to describe them as dry day spills.”</p></blockquote></li>
+    <li><a href="https://registry.opendata.aws/met-office-uk-radar-observations/">Met Office UK radar observations on AWS Open Data</a>. Fetched 15 Sep 2026. Planned as a second, independent rainfall estimate; not yet used for any figure on this site.
+      <blockquote><p>“Four images per hour (every 15 minutes). The data is available within 20 minutes of the validity time of the product.”</p><p>“British Crown copyright 2024-2025, the Met Office, is licensed under CC BY-SA”</p></blockquote></li>
+    <li><a href="https://www.thameswater.co.uk/about-us/performance/river-health/storm-discharge-and-flow-data">Thames Water storm discharge data page</a>. Fetched 15 Sep 2026. Planned source for Thames Water's history; not yet used.
+      <blockquote><p>“We've set up an application programme interface (API) to connect third parties to our publicly open storm discharge data.”</p></blockquote></li>
+    <li><a href="https://rivertruth.co.uk/">River Truth</a> and <a href="https://rivertruth.co.uk/discrepancies">its discrepancies page</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“Spill occurred with effectively no rainfall in the preceding 24 h — storm overflows are not legally permitted to discharge in dry weather.”</p></blockquote></li>
+    <li><a href="https://top-of-the-poops.org/">Top of the Poops</a>. Fetched 15 Sep 2026.
+      <blockquote><p>“Rainfall data is delayed by up to two days.”</p></blockquote></li>
+    <li><a href="https://www.scottishwater.co.uk/Help-and-Resources/Open-Data/Overflow-Map-Data">Scottish Water overflow data</a>. Fetched 15 Sep 2026. Scotland is outside this site's scope.
+      <blockquote><p>“It provides near real-time information on monitor activations and is updated every 60 minutes.”</p></blockquote></li>
+  </ol>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}About{% endblock %}
+{% block description %}What Storm Water Tracker is, why it exists, and what it is not.{% endblock %}
+{% block main %}
+<div class="wrap prose">
+  <div class="page-head">
+    <h1>About</h1>
+  </div>
+  <p><strong>What this is.</strong> Storm Water Tracker is a personal project by one person. It records every storm overflow discharge that England's water companies publish, checks each one against Environment Agency rainfall, and flags those that started on a dry day under the Environment Agency's own definition, with the evidence shown for every flag and all the data available to download.</p>
+  <p><strong>Why.</strong> The Environment Agency's own count of dry day spills is only released through freedom of information requests, and the public annual monitoring dataset cannot tell dry spills apart: as the House of Commons Library puts it, “there is at present no way to distinguish 'dry spills' (discharge of sewage at times of little to no rainfall, normally in breach of permit conditions) within this dataset.” The companies now publish each discharge within an hour, so it is possible to check them one by one, in the open.</p>
+  <p><strong>What it is not.</strong> It is not affiliated with any water company, regulator or campaign. It is not an alert service. Its flags are not legal findings: a dry day spill here is a potential breach, not a confirmed one, and only the Environment Agency can confirm a breach after investigation.</p>
+</div>
+{% endblock %}

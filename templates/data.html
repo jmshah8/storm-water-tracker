@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Data{% endblock %}
+{% block description %}Download every storm overflow event, dry day classification and rain gauge list used by Storm Water Tracker, with a column dictionary and licences.{% endblock %}
+{% block main %}
+<div class="wrap prose">
+  <div class="page-head">
+    <h1>Data</h1>
+    <p>Every file behind the site, as CSV (UTF-8, one header row). Times are UTC in ISO 8601 with a Z suffix.</p>
+  </div>
+
+  <h2>Downloads</h2>
+  <ul>
+    {% for rel in data_files %}
+    <li><a href="{{ root }}data/{{ rel }}">{{ rel }}</a></li>
+    {% endfor %}
+  </ul>
+  <p>Classified events for one company:
+    {% for slug, name in company_csvs %}<a href="{{ root }}data/classification/companies/{{ slug }}.csv">{{ name }}</a>{% if not loop.last %} · {% endif %}{% endfor %}.
+  </p>
+  <p>Daily rainfall per gauge is not copied here: every event page links to the exact Environment Agency Hydrology API request for its gauge and window.</p>
+
+  <h2>Column dictionary</h2>
+  <h3>overflows.csv: one row per overflow ever seen</h3>
+  <ul>
+    <li><strong>overflow_key</strong>: company slug and the company's overflow ID, joined by a colon.</li>
+    <li><strong>company_slug</strong>, <strong>company_name</strong>: the company.</li>
+    <li><strong>source_id</strong>: the company's overflow ID, as published.</li>
+    <li><strong>latitude</strong>, <strong>longitude</strong>: WGS84, 6 decimal places; empty if not published.</li>
+    <li><strong>receiving_watercourse</strong>: as published; may be empty.</li>
+    <li><strong>first_seen_utc</strong>: when we first saw the overflow. <strong>last_seen_utc</strong>: when its published status, event times, coordinates or watercourse last changed.</li>
+  </ul>
+  <h3>events/YYYY-MM.csv: one row per discharge, filed by the UTC month it started</h3>
+  <ul>
+    <li><strong>event_id</strong>: overflow_key and the published start time in epoch milliseconds, joined by a colon. Never changes.</li>
+    <li><strong>overflow_key</strong>, <strong>company_slug</strong>.</li>
+    <li><strong>start_utc</strong>: published start. <strong>end_utc</strong>: published end; empty while ongoing, or if the published end was earlier than the start.</li>
+    <li><strong>duration_min</strong>: whole minutes from start to end; empty while there is no end.</li>
+    <li><strong>source</strong>: <code>hub</code> for the National Storm Overflow Hub.</li>
+    <li><strong>first_observed_utc</strong>, <strong>last_observed_utc</strong>: when we first saw the event, and when its row last changed.</li>
+    <li><strong>end_observed</strong>: <code>true</code> if the end came from the feed; <code>false</code> if inferred from the start of the overflow's next discharge.</li>
+  </ul>
+  <h3>rain/gauges.csv: Environment Agency rain gauges with 15-minute totals</h3>
+  <ul>
+    <li><strong>gauge_id</strong>: the Hydrology API station notation. <strong>measure_id</strong>: its 15-minute rainfall measure.</li>
+    <li><strong>label</strong>, <strong>latitude</strong>, <strong>longitude</strong>, <strong>date_opened</strong>: as published.</li>
+    <li><strong>fetched_utc</strong>: when the row was last fetched with a change.</li>
+  </ul>
+  <h3>classification/all_events_classified.csv and dry_day_spills.csv</h3>
+  <p>One row per event in the first; only the dry day spills in the second.</p>
+  <ul>
+    <li><strong>event_id</strong>, <strong>overflow_key</strong>, <strong>company_slug</strong>, <strong>start_utc</strong>, <strong>end_utc</strong>, <strong>duration_min</strong>, <strong>source</strong>: copied from the events files.</li>
+    <li><strong>day_utc</strong>: the UTC date the discharge started.</li>
+    <li><strong>window_start_utc</strong>, <strong>window_end_utc</strong>: 00:00 UTC on the day before, to 00:00 UTC on the day after (48 hours).</li>
+    <li><strong>gauge_id</strong>, <strong>gauge_label</strong>, <strong>gauge_distance_km</strong>: the gauge used; empty if none.</li>
+    <li><strong>rain_day_mm</strong>: rain on day_utc. <strong>rain_prev24_mm</strong>: rain on the day before. <strong>rain_window_total_mm</strong>: the two added. <strong>rain_window_max15_mm</strong>: the largest single 15-minute reading in the window.</li>
+    <li><strong>n_readings_present</strong>, <strong>n_readings_expected</strong>: 15-minute readings found, of 192.</li>
+    <li><strong>verdict</strong>: <code>dry_day</code>, <code>not_dry</code>, <code>pending_rain_data</code>, <code>no_gauge_within_10km</code> or <code>insufficient_readings</code>. <strong>verdict_basis</strong>: <code>total</code>. <strong>rule_version</strong>: <code>{{ rule_version }}</code>.</li>
+    <li><strong>classified_utc</strong>: when this row's classification last changed.</li>
+    <li><strong>radar_window_total_mm</strong>, <strong>radar_3x3_max_total_mm</strong>, <strong>radar_status</strong>: reserved for the planned radar comparison; empty for now.</li>
+    <li><strong>is_final</strong>: <code>true</code> once the verdict can no longer change (see the <a href="{{ root }}method.html">Method</a>).</li>
+  </ul>
+  <h3>classification/verdict_changes.csv</h3>
+  <ul>
+    <li><strong>event_id</strong>, <strong>from_verdict</strong>, <strong>to_verdict</strong>, <strong>changed_utc</strong>, <strong>n_readings_present</strong>: every change between <code>dry_day</code> and <code>not_dry</code>.</li>
+  </ul>
+
+  <h2>Licences and attribution</h2>
+  <ul>
+    <li>This site's own content and data files: CC BY 4.0.</li>
+    <li>Storm overflow data: the water companies via the National Storm Overflow Hub (Stream), CC BY 4.0 (for example, “Storm overflow data: Thames Water via the National Storm Overflow Hub (Stream), CC BY 4.0.”). ST Connect's feed publishes no licence statement.</li>
+    <li>Rainfall: Environment Agency Hydrology API, Open Government Licence v3.0.</li>
+  </ul>
+</div>
+{% endblock %}
