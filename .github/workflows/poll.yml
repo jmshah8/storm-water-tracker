@@ -1,26 +1,36 @@
 name: poll
 on:
   schedule:
-    - cron: "3,13,23,33,43,53 * * * *"   # every 10 minutes, off the top of the hour (GitHub drops scheduled runs at peak times)
+    - cron: "*/10 * * * *"
   workflow_dispatch:
-concurrency: {group: data-writers, cancel-in-progress: false}
+concurrency: {group: poll, cancel-in-progress: false}   # its own lane: a run holds it for ~50 minutes
 permissions: {contents: write}
 jobs:
   poll:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 70
     steps:
       - uses: actions/checkout@v7
         with: {fetch-depth: 1}
       - uses: actions/setup-python@v7
         with: {python-version: "3.12", cache: pip}
       - run: pip install -r requirements.txt
-      - run: python scripts/collect.py
-      - name: commit if changed
+      # GitHub starts scheduled runs far less often than every 10 minutes (it drops them under load), so one
+      # started run polls six times, ten minutes apart, and commits after each poll.
+      - name: poll every 10 minutes for an hour
         run: |
           git config user.name "swt-bot"
           git config user.email "swt-bot@users.noreply.github.com"
-          git add data
-          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
-          git commit -m "poll: $(date -u +%FT%TZ)"
-          for i in 1 2 3; do git pull --rebase && git push && break || sleep 5; done
+          for i in 1 2 3 4 5 6; do
+            echo "--- poll $i/6 at $(date -u +%FT%TZ)"
+            git pull --rebase --quiet || true
+            python scripts/collect.py
+            git add data
+            if git diff --cached --quiet; then
+              echo "no changes"
+            else
+              git commit -m "poll: $(date -u +%FT%TZ)"
+              for attempt in 1 2 3 4 5; do git pull --rebase && git push && break || sleep 10; done
+            fi
+            if [ "$i" != 6 ]; then sleep 600; fi
+          done

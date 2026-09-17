@@ -1,7 +1,7 @@
 name: classify
 on:
   schedule:
-    - cron: "17 * * * *"   # hourly, off the top of the hour
+    - cron: "15 * * * *"
   workflow_run:
     workflows: [rain]
     types: [completed]
