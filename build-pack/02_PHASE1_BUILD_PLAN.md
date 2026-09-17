@@ -165,7 +165,7 @@ Jaimin will have:
 
 ## Step 8 — Deploy
 
-- [ ] **1.15a Write `.github/workflows/rain.yml`, `classify.yml` and `deploy-netlify.yml`** per `01_SPEC.md` §9.3. `classify.yml` commits classification CSVs and **does not deploy**. Write `scripts/deploy_guard.py` with unit tests (month boundary; 7 vs 8 `prod` entries; `--override true`; `--record` appends `{utc, kind, run_url, message, deploy_url}` from the CLI's JSON output and keeps the file sorted by `utc`). `check.py` must import Playwright lazily inside `--step 1.13` only, because the deploy job installs `requirements.txt` alone. Reference for `deploy-netlify.yml` (adapt only names, not logic):
+- [x] **1.15a Write `.github/workflows/rain.yml`, `classify.yml` and `deploy-netlify.yml`** per `01_SPEC.md` §9.3. `classify.yml` commits classification CSVs and **does not deploy**. Write `scripts/deploy_guard.py` with unit tests (month boundary; 7 vs 8 `prod` entries; `--override true`; `--record` appends `{utc, kind, run_url, message, deploy_url}` from the CLI's JSON output and keeps the file sorted by `utc`). `check.py` must import Playwright lazily inside `--step 1.13` only, because the deploy job installs `requirements.txt` alone. Reference for `deploy-netlify.yml` (adapt only names, not logic):
   ```yaml
   name: deploy-netlify
   on:
