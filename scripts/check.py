@@ -782,10 +782,19 @@ def acceptance_phase1(args):
         "PASS" if "The site looks good" in notes else "FAIL")
 
     print("E. Hygiene")
-    secrets = run(["git", "grep", "-iE", "client_secret|netlify_auth|nfp_", "--", ".", ":!build-pack", ":!NOTES_FOR_JAIMIN.md"])
+    secrets = run(["git", "grep", "-inE", "client_secret|netlify_auth|nfp_", "--", ".", ":!build-pack",
+                   ":!NOTES_FOR_JAIMIN.md"])
+    # Two matches carry no secret value and are expected (Jaimin's decision, 18 Sep 2026): the workflow line that
+    # names the GitHub secret (the value is substituted at run time and never stored), and this file, which
+    # contains the search pattern itself. Anything else is a failure.
+    expected = re.compile(r"^\.github/workflows/[^:]+:\d+:\s*[A-Z_]+: \$\{\{ secrets\.[A-Z_]+ \}\}\s*$"
+                          r"|^scripts/check\.py:\d+:")
+    hits = [line for line in secrets.stdout.splitlines() if not expected.match(line)]
     ignored = ".env" in (ROOT / ".gitignore").read_text(encoding="utf-8")
-    add("E1", "clean", f"secret-pattern hits in tracked files: {len(secrets.stdout.splitlines())}; .env ignored: "
-        f"{ignored}", "PASS" if not secrets.stdout.strip() and ignored else "FAIL")
+    tracked_env = run(["git", "ls-files", ".env"]).stdout.strip()
+    add("E1", "clean", f"secret-pattern hits beyond GitHub secret references and this check: {len(hits)} {hits[:3]}; "
+        f".env ignored: {ignored}, tracked: {bool(tracked_env)}",
+        "PASS" if not hits and ignored and not tracked_env else "FAIL")
     open_markers = notes.count("[OPEN]")
     add("E2", "0", f"[OPEN] markers in NOTES_FOR_JAIMIN.md: {open_markers}", "PASS" if not open_markers else "FAIL")
     required = {"UTC assumption": "We use UTC calendar days", "BST verification date": "15 September 2026",
