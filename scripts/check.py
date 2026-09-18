@@ -771,7 +771,9 @@ def acceptance_phase1(args):
                 external.add(el.get("src"))
         for el in tree.iter("link"):
             href = el.get("href") or ""
-            if re.match(r"^(https?:)?//", href) and "fonts.googleapis.com" not in href:
+            # only stylesheets count here; canonical and preconnect links are not fetched resources
+            if el.get("rel") == "stylesheet" and re.match(r"^(https?:)?//", href) \
+                    and "fonts.googleapis.com" not in href:
                 external.add(href)
     add("D5", "none except Google Fonts CSS", f"external scripts/stylesheets: {sorted(external) or 'none'}",
         "PASS" if not external else "FAIL")
