@@ -45,6 +45,22 @@
     </div>
   </section>
 
+  {% if ev.radar_status in ('complete', 'partial') %}
+  <section class="section">
+    <h2>Radar second opinion</h2>
+    <p class="muted">Met Office rainfall radar estimates rain over the overflow's own square kilometre, independently of the gauges. It never changes the verdict: it is shown so a flag can be looked at twice.</p>
+    <dl class="fields">
+      <dt>Radar over the overflow</dt><dd><span data-metric="radar-window-total" data-value="{{ ev.radar_window_total_mm }}">{{ ev.radar_window_total_mm }}</span> mm in the same 48-hour window</dd>
+      <dt>Highest of the 9 squares around it</dt><dd><strong data-metric="radar-3x3-max" data-value="{{ ev.radar_3x3_max_total_mm }}">{{ ev.radar_3x3_max_total_mm }} mm</strong></dd>
+      <dt>Frames present</dt><dd>{{ radar_frames.get(prev_day, '0') }} on {{ prev_day|d }} and {{ radar_frames.get(ev.day_utc, '0') }} on {{ ev.day_utc|d }}, of 96 each</dd>
+      {% if ev.radar_label %}
+      <dt>Verdict check</dt><dd>{% if ev.radar_label == 'radar_agrees' %}<span data-metric="radar-label" data-value="radar_agrees">Radar agrees</span>: it also recorded 0.25 mm or less around this overflow.{% else %}<span data-metric="radar-label" data-value="radar_disagrees">Radar disagrees</span>: it recorded more than 0.25 mm somewhere in those nine squares. That means look closer, not that the flag is wrong — the verdict follows the gauge, as the Environment Agency's definition does.{% endif %}</dd>
+      {% endif %}
+    </dl>
+    <p class="muted">Contains Met Office radar data © British Crown copyright, CC BY-SA.</p>
+  </section>
+  {% endif %}
+
   <section class="section">
     <h2>The rule</h2>
     <blockquote><p>“{{ ea_rule }}”</p></blockquote>

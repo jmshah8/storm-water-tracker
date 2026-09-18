@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """Classify every event with the dry-day rule (01_SPEC.md §5) and write the classification CSVs.
 
-Reads data/events, data/overflows.csv, data/rain/gauges.csv, data/rain/daily. Re-evaluates every event
+Reads data/events, data/overflows.csv, data/rain/gauges.csv, data/rain/daily, and (phase 2)
+data/radar/daily. The radar columns are a second opinion only: they never change a verdict.
+Re-evaluates every event
 whose previous verdict is not final (final verdicts are kept unless --force); appends flips between
 dry_day and not_dry to verdict_changes.csv; writes all_events_classified.csv and dry_day_spills.csv.
 
 Exit codes: 0 ok, 1 input files missing.
 """
 import argparse
+import csv
+import gzip
 import sys
+from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -27,6 +32,44 @@ FIELDS = COPIED + [
     "radar_window_total_mm", "radar_3x3_max_total_mm", "radar_status", "is_final"]
 CHANGE_FIELDS = ["event_id", "from_verdict", "to_verdict", "changed_utc", "n_readings_present"]
 DECIDED = {"dry_day", "not_dry"}
+RADAR_COMPLETE_FRAMES = 92
+
+
+class RadarDays:
+    """Reads data/radar/daily/{date}.csv.gz on demand, keeping only the last few days in memory."""
+
+    def __init__(self, directory, keep=3):
+        self.directory = Path(directory)
+        self.keep = keep
+        self.cache = {}
+
+    def day(self, day):
+        """{overflow_key: row} for that UTC day, or None when the file does not exist."""
+        if day not in self.cache:
+            path = self.directory / f"{day}.csv.gz"
+            if path.exists():
+                with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
+                    self.cache[day] = {r["overflow_key"]: r for r in csv.DictReader(f)}
+            else:
+                self.cache[day] = None
+            for old in list(self.cache)[:-self.keep]:
+                del self.cache[old]
+        return self.cache[day]
+
+    def window(self, overflow_key, day_utc):
+        """Radar totals over the same 48-hour window as the rule (03 plan step 2.4)."""
+        previous = (date.fromisoformat(day_utc) - timedelta(days=1)).isoformat()
+        rows = [(self.day(d) or {}).get(overflow_key) for d in (previous, day_utc)]
+        if any(r is None for r in rows):
+            return {"radar_window_total_mm": "", "radar_3x3_max_total_mm": "", "radar_status": "missing"}
+        if any(not r["radar_total_mm"] for r in rows):
+            return {"radar_window_total_mm": "", "radar_3x3_max_total_mm": "", "radar_status": "missing"}
+        complete = all(int(r["n_frames"]) >= RADAR_COMPLETE_FRAMES for r in rows)
+        return {
+            "radar_window_total_mm": f"{sum(float(r['radar_total_mm']) for r in rows):.2f}",
+            "radar_3x3_max_total_mm": f"{sum(float(r['radar_3x3_max_total_mm']) for r in rows):.2f}",
+            "radar_status": "complete" if complete else "partial",
+        }
 
 
 def main():
@@ -65,19 +108,26 @@ def main():
                 candidates_cache[overflow_key] = nearest_gauges(float(o["latitude"]), float(o["longitude"]), gauges)
         return candidates_cache[overflow_key]
 
+    radar = RadarDays(data / "radar" / "daily")
+    events.sort(key=lambda e: (e["start_utc"], e["event_id"]))  # so the radar day cache only needs a few days
     previous = {r["event_id"]: r for r in read_csv(out_dir / "all_events_classified.csv")}
     changes = read_csv(out_dir / "verdict_changes.csv")
     rows, kept_final, flips = [], 0, 0
     for ev in events:
         old = previous.get(ev["event_id"])
         if old and old["is_final"] == "true" and not args.force:
-            rows.append(dict(old, **{k: ev[k] for k in COPIED}))
+            # a final verdict never changes, but its radar second opinion can still arrive or improve
+            kept = dict(old, **{k: ev[k] for k in COPIED})
+            kept.update(radar.window(ev["overflow_key"], old["day_utc"]))
+            if any(kept[k] != old[k] for k in ("radar_window_total_mm", "radar_3x3_max_total_mm", "radar_status")):
+                kept["classified_utc"] = now
+            rows.append(kept)
             kept_final += 1
             continue
         result = classify_event(ev["start_utc"], candidates(ev["overflow_key"]), rain_lookup, now, RULE_VERSION)
         row = {k: ev[k] for k in COPIED}
         row.update(result)
-        row.update(radar_window_total_mm="", radar_3x3_max_total_mm="", radar_status="")
+        row.update(radar.window(ev["overflow_key"], result["day_utc"]))
         # classified_utc moves only when the classification itself changed, so an hourly run over unchanged
         # inputs produces no diff.
         unchanged = old and all(old.get(k) == row[k] for k in row)
@@ -93,11 +143,13 @@ def main():
               lambda r: r["event_id"])
     write_csv(out_dir / "verdict_changes.csv", changes, CHANGE_FIELDS, lambda r: (r["event_id"], r["changed_utc"]))
 
-    counts = {}
+    counts, radar_counts = {}, {}
     for r in rows:
         counts[r["verdict"]] = counts.get(r["verdict"], 0) + 1
+        radar_counts[r["radar_status"]] = radar_counts.get(r["radar_status"], 0) + 1
     print(f"events={len(rows)} kept_final={kept_final} flips={flips} "
-          + " ".join(f"{k}={v}" for k, v in sorted(counts.items())))
+          + " ".join(f"{k}={v}" for k, v in sorted(counts.items()))
+          + " | radar " + " ".join(f"{k}={v}" for k, v in sorted(radar_counts.items())))
     return 0
 
 

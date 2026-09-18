@@ -38,7 +38,7 @@
 <footer class="footer">
   <div class="wrap">
     <p>{{ footer.poll_label }}: {{ footer.poll }} · Rain data last updated: {{ footer.rain }} · Last classification change: {{ footer.classified }}</p>
-    <p>Storm overflow data: the ten water companies via the National Storm Overflow Hub (Stream), CC BY 4.0 (ST Connect’s feed publishes no licence). Rainfall: Environment Agency Hydrology API, Open Government Licence v3.0.</p>
+    <p>Storm overflow data: the ten water companies via the National Storm Overflow Hub (Stream), CC BY 4.0 (ST Connect’s feed publishes no licence). Rainfall: Environment Agency Hydrology API, Open Government Licence v3.0.{% if has_radar %} Contains Met Office radar data © British Crown copyright, CC BY-SA.{% endif %}</p>
     <p><a href="{{ root }}about.html">About</a> · A personal project. Not affiliated with any water company, regulator or campaign.</p>
   </div>
 </footer>

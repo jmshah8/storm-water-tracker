@@ -340,9 +340,11 @@ def site_checks():
                 slug = tr.get("data-company")
                 in_p = [r for r in rows if r["company_slug"] == slug and within(r, key)]
                 dry = sum(1 for r in in_p if r["verdict"] == "dry_day")
+                agrees = sum(1 for r in in_p if r["verdict"] == "dry_day" and r["radar_status"] == "complete"
+                             and r["radar_3x3_max_total_mm"] and float(r["radar_3x3_max_total_mm"]) <= 0.25)
                 exp = {"overflows": str(n_overflows[slug]), "events": str(len(in_p)), "dry": str(dry),
                        "per100": f"{dry * 100 / n_overflows[slug]:.1f}" if n_overflows[slug] else "0.0",
-                       "last_dry": last_dry.get(slug, "")}
+                       "radar_agrees": str(agrees), "last_dry": last_dry.get(slug, "")}
                 got = {td.get("data-metric"): td.get("data-value") for td in tr.iter("td")}
                 for k, v in exp.items():
                     league_checked += 1
@@ -590,6 +592,48 @@ def step_2_3(args):
     print(f"median radar total at the {len(zero_group)} zero-rain gauges: {median_zero:.2f} mm (pass < 1 mm)")
     ok = correlation > 0.6 and median_zero < 1
     print("PASS" if ok else "FAIL — GATE 2.3")
+    return 0 if ok else 1
+
+
+# ---------------------------------------------------------------- step 2.4
+
+def step_2_4(args):
+    """Every dry_day page with complete radar shows the block; the Radar agrees columns match the CSV."""
+    import html5lib
+    import re
+
+    site = ROOT / "site"
+    rows = read_csv(ROOT / "data" / "classification" / "all_events_classified.csv")
+    slugged = {r["event_id"]: re.sub(r"[^A-Za-z0-9_-]", "_", r["event_id"]) for r in rows}
+    wanted = [r for r in rows if r["verdict"] == "dry_day" and r["radar_status"] == "complete"]
+    missing, empty = [], []
+    for row in wanted:
+        path = site / "events" / f"{slugged[row['event_id']]}.html"
+        if not path.exists():
+            missing.append(row["event_id"])
+            continue
+        tree = html5lib.parse(path.read_text(encoding="utf-8"), namespaceHTMLElements=False)
+        shown = {el.get("data-metric"): el.get("data-value") for el in tree.iter()
+                 if el.get("data-metric", "").startswith("radar-")}
+        if shown.get("radar-window-total") in (None, "") or shown.get("radar-3x3-max") in (None, "") \
+                or not shown.get("radar-label"):
+            empty.append((row["event_id"], shown))
+        elif shown["radar-window-total"] != row["radar_window_total_mm"] \
+                or shown["radar-3x3-max"] != row["radar_3x3_max_total_mm"]:
+            empty.append((row["event_id"], shown))
+    print(f"dry_day events with complete radar: {len(wanted)}; pages missing: {len(missing)}; "
+          f"pages without matching radar numbers: {len(empty)}")
+    for item in (missing[:5] + empty[:5]):
+        print(f"    {item}")
+
+    site_result = site_checks()
+    league_ok = not site_result["mismatches"]
+    print(f"league tables (including Radar agrees) recomputed from the CSV: "
+          f"{site_result['league_cells']} cells, {len(site_result['mismatches'])} mismatches")
+    for m in site_result["mismatches"][:5]:
+        print(f"    {m}")
+    ok = not missing and not empty and league_ok
+    print("PASS" if ok else "FAIL")
     return 0 if ok else 1
 
 
@@ -897,7 +941,7 @@ def read_json_file(path):
         return json.load(f)
 
 
-STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14, "2.3": step_2_3}
+STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14, "2.3": step_2_3, "2.4": step_2_4}
 
 
 def main():

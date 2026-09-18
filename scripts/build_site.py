@@ -38,6 +38,7 @@ EVENTS_PER_PAGE = 200
 COMPANY_SPILLS_PER_PAGE = 100
 LATEST_SPILLS = 20
 HYDROLOGY = "https://environment.data.gov.uk/hydrology/id"
+RADAR_THRESHOLD_MM = 0.25   # the same threshold as the rule, applied to the radar's 3x3 maximum
 EA_RULE = ("A dry day spill is when a storm overflow is used on a 'dry day' – which is defined as "
            "no rainfall above 0.25mm on that day and the preceding 24 hours.")
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -116,6 +117,30 @@ def slug_map(event_ids):
             used.add(slug)
             out[eid] = slug
     return out
+
+
+def radar_label(row):
+    """'radar_agrees' / 'radar_disagrees' for a dry day flag with complete radar; '' otherwise (03 plan §2.4).
+
+    Derived at build time only: the radar never changes a verdict.
+    """
+    if row["verdict"] != "dry_day" or row["radar_status"] != "complete" or not row["radar_3x3_max_total_mm"]:
+        return ""
+    return "radar_agrees" if float(row["radar_3x3_max_total_mm"]) <= RADAR_THRESHOLD_MM else "radar_disagrees"
+
+
+def radar_frames(data):
+    """{date: n_frames} read from the first row of each radar daily file."""
+    import csv
+    import gzip
+
+    frames = {}
+    for path in sorted((data / "radar" / "daily").glob("*.csv.gz")):
+        with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
+            first = next(csv.DictReader(f), None)
+        if first:
+            frames[path.name[:-len(".csv.gz")]] = first["n_frames"]
+    return frames
 
 
 def per_100(dry, overflows):
@@ -260,6 +285,7 @@ def build(out_dir, hero_only=False):
         r["duration_s"] = duration_seconds(r)
         r["duration_text"] = fmt_duration(r["duration_s"])
         r["watercourse"] = r["overflow"].get("receiving_watercourse", "").strip()
+        r["radar_label"] = radar_label(r)
 
     page_rows = [r for r in rows if r["verdict"] in PAGE_EVENT_VERDICTS]
     slugs = slug_map([r["event_id"] for r in page_rows])
@@ -293,11 +319,15 @@ def build(out_dir, hero_only=False):
         in_p = [r for r in rows if in_period(r, start, end)]
         ev_c = Counter(r["company_slug"] for r in in_p)
         dry_c = Counter(r["company_slug"] for r in in_p if r["verdict"] == "dry_day")
+        checked_c = Counter(r["company_slug"] for r in in_p if r["radar_label"])
+        agree_c = Counter(r["company_slug"] for r in in_p if r["radar_label"] == "radar_agrees")
         league[key] = {
             "key": key, "label": label, "start": start, "end": end,
             "rows": [{"slug": slug, "name": name, "overflows": overflow_counts[slug], "events": ev_c[slug],
                       "dry": dry_c[slug], "per100": per_100(dry_c[slug], overflow_counts[slug]),
-                      "last_dry": last_dry.get(slug, ""), "last_dry_text": fmt_date(last_dry.get(slug, ""))}
+                      "last_dry": last_dry.get(slug, ""), "last_dry_text": fmt_date(last_dry.get(slug, "")),
+                      "radar_agrees": agree_c[slug], "radar_checked": checked_c[slug],
+                      "radar_share": f"{agree_c[slug] * 100 / checked_c[slug]:.0f}" if checked_c[slug] else ""}
                      for slug, name in COMPANIES],
         }
         tiles[key] = {"dry": sum(dry_c.values()), "events": len(in_p)}
@@ -305,7 +335,8 @@ def build(out_dir, hero_only=False):
     env = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True, undefined=StrictUndefined,
                       trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
     env.filters.update(dt=fmt_datetime, dts=fmt_datetime_seconds, d=fmt_date, thin=thin)
-    common = {"footer": footer, "site_url": site_url, "build_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    frames = radar_frames(data)
+    common = {"radar_frames": frames, "has_radar": bool(frames), "footer": footer, "site_url": site_url, "build_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
               "launch_utc": launch_utc, "launch_date": fmt_date(launch_day), "rule_version": meta["rule_version"],
               "ea_rule": EA_RULE, "n_overflows": len(overflows), "hero_svg": (ROOT / "static" /
                                                                                "england-overflows.svg").exists()}
