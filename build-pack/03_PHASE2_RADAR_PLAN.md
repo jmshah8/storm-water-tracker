@@ -6,7 +6,7 @@ Add to `requirements.txt`: `h5py==3.*`, `numpy==2.*`, `pyproj==3.*`. No AWS SDK 
 
 ---
 
-- [ ] **2.1 Inspect one radar file and record its structure.**
+- [x] **2.1 Inspect one radar file and record its structure.**
   Download one recent file, e.g. `radar/{YYYY}/{MM}/{DD}/{YYYYMMDD}1200_ODIM_ng_radar_rainrate_composite_1km_UK.h5` for two days ago. Write `scripts/radar.py inspect PATH` that prints every attribute of the HDF5 groups `/what`, `/where`, `/how` (if present), `/dataset1/what`, `/dataset1/where` (if present), `/dataset1/data1/what`, and the shape/dtype of `/dataset1/data1/data`.
   **CHECK 2.1:** paste the attributes. You must see: a `quantity` (expected `RATE`), `gain`, `offset`, `nodata`, `undetect`; grid `xsize`, `ysize`, `xscale`, `yscale` (expected 1000 m); a `projdef` string; corner coordinates (`LL_lon`, `LL_lat`, `UL_lon`, `UL_lat`, `UR_*`, `LR_*`); and dataset start/end date/time. Write the observed values into `NOTES_FOR_JAIMIN.md` under "Radar file structure ({date})". If `quantity` is not `RATE` or units are not mm/h, **GATE 2.1** — stop and report; the accumulation formula depends on it.
 
