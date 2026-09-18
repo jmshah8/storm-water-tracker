@@ -160,6 +160,12 @@ def run(data_dir, srcs, feeds, now, stats):
 
     events_by_overflow = defaultdict(list)
     for ev in events:
+        # An end earlier than its start is never kept (GATE 1 decision). A start re-timed past an end already
+        # stored can create one at any time, including on events the feeds have since moved past, so every
+        # event is checked on every run.
+        if ev["end_utc"] and iso_to_ms(ev["end_utc"]) < iso_to_ms(ev["start_utc"]):
+            ev["end_utc"] = ev["duration_min"] = ev["end_observed"] = ""
+            stats["ends_before_start_cleared"] += 1
         events_by_overflow[ev["overflow_key"]].append(ev)
     offline_by_overflow = defaultdict(list)
     for period in offline:
@@ -234,6 +240,11 @@ def apply_record(slug, src, rec, overflows, snapshot, events_by_overflow, offlin
                      "first_observed_utc": now, "last_observed_utc": now, "end_observed": ""}
             overflow_events.append(event)
             stats["new_events"] += 1
+            changed = True
+        # the same rule, applied in the run where a re-timed start moves past an end already stored
+        if event["end_utc"] and iso_to_ms(event["end_utc"]) < iso_to_ms(event["start_utc"]):
+            event["end_utc"] = event["duration_min"] = event["end_observed"] = ""
+            stats["ends_before_start_cleared"] += 1
             changed = True
         if end_ms is not None and not event["end_utc"] and whole_second(end_ms) < iso_to_ms(event["start_utc"]):
             # The feed's end precedes the start (a data error); leave the end empty (GATE 1 decision).

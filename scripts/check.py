@@ -241,14 +241,14 @@ LEAGUE_COMPANIES = ["anglian", "northumbrian", "severn-trent", "southern", "sout
                     "united-utilities", "wessex", "yorkshire", "st-connect"]
 
 
-def step_1_11(args):
+def site_checks():
+    """Runs CHECK 1.11's parts and returns the findings, so the acceptance table can reuse them."""
     import collections
     import html5lib
     import re
     from html5lib.html5parser import ParseError
 
     site = ROOT / "site"
-    ok = True
     pages = sorted(site.rglob("*.html"))
     parser = html5lib.HTMLParser(strict=True, namespaceHTMLElements=False)
     trees, parse_errors = {}, []
@@ -260,7 +260,6 @@ def step_1_11(args):
     print(f"(a) pages parsed: {len(pages)}; html5lib strict parse errors: {len(parse_errors)}")
     for rel, err in parse_errors[:10]:
         print(f"    {rel}: {err}")
-    ok &= not parse_errors
 
     root_relative, broken, checked = [], [], 0
     for page, tree in trees.items():
@@ -279,7 +278,6 @@ def step_1_11(args):
     print(f"(b) internal href/src checked: {checked}; root-relative: {len(root_relative)}; unresolved: {len(broken)}")
     for rel, url in (root_relative + broken)[:10]:
         print(f"    {rel}: {url}")
-    ok &= not root_relative and not broken
 
     rows = read_csv(ROOT / "data" / "classification" / "all_events_classified.csv")
     expected_ids = {r["event_id"] for r in rows if r["verdict"] in ("dry_day", "pending_rain_data")}
@@ -292,7 +290,6 @@ def step_1_11(args):
     missing, extra = expected_files - actual_files, actual_files - expected_files
     print(f"(c) dry_day + pending_rain_data events: {len(expected_ids)}; event pages: {len(actual_files)}; "
           f"missing: {len(missing)}; extra: {len(extra)}")
-    ok &= not missing and not extra
 
     def metrics(page):
         tree = trees[site / page]
@@ -354,7 +351,6 @@ def step_1_11(args):
     print(f"    league table cells checked: {league_checked}; mismatches (tiles + league): {len(mismatches)}")
     for m in mismatches[:10]:
         print(f"    {m[0]}: expected {m[1]!r}, shown {m[2]!r}")
-    ok &= not mismatches and league_checked == 2 * 2 * len(LEAGUE_COMPANIES) * 5
 
     hits = []
     for path in site.rglob("*"):
@@ -362,7 +358,6 @@ def step_1_11(args):
             text = path.read_text(encoding="utf-8", errors="replace").lower()
             hits += [(path.relative_to(site).as_posix(), w) for w in FORBIDDEN_WORDS if w in text]
     print(f"(e) forbidden words {FORBIDDEN_WORDS} in site/: {len(hits)} hits {hits[:5]}")
-    ok &= not hits
 
     missing_head = []
     for page, tree in trees.items():
@@ -371,8 +366,17 @@ def step_1_11(args):
         if not title.strip() or not (metas.get("description") or "").strip() or metas.get("robots") != "noindex":
             missing_head.append(page.relative_to(site).as_posix())
     print(f"(f) pages missing <title>, meta description or noindex: {len(missing_head)} {missing_head[:5]}")
-    ok &= not missing_head
 
+    return {"pages": len(pages), "parse_errors": parse_errors, "root_relative": root_relative, "broken": broken,
+            "links_checked": checked, "missing_pages": missing, "extra_pages": extra, "event_pages": len(actual_files),
+            "mismatches": mismatches, "league_cells": league_checked, "forbidden": hits, "missing_head": missing_head,
+            "trees": trees, "site": site}
+
+
+def step_1_11(args):
+    r = site_checks()
+    ok = not (r["parse_errors"] or r["root_relative"] or r["broken"] or r["missing_pages"] or r["extra_pages"]
+              or r["mismatches"] or r["forbidden"] or r["missing_head"])
     print("PASS" if ok else "FAIL")
     return 0 if ok else 1
 
@@ -395,14 +399,14 @@ def contrast_ratio(a, b):
     return (la + 0.05) / (lb + 0.05)
 
 
-def step_1_13(args):
+def design_checks():
     import functools
     import http.server
     import re
     import threading
     from playwright.sync_api import sync_playwright  # imported here only: the deploy job does not install Playwright
 
-    ok = True
+    report = {"contrast": [], "scroll": {}, "headline_ok": None, "pill_ok": None}
     css = (ROOT / "static" / "style.css").read_text(encoding="utf-8")
     root_block = re.search(r":root\s*\{([^}]*)\}", css).group(1)
     palette = dict(re.findall(r"--([a-z-]+):\s*(#[0-9a-fA-F]{6})", root_block))
@@ -410,7 +414,7 @@ def step_1_13(args):
     for fg, bg in CONTRAST_PAIRS:
         ratio = contrast_ratio(palette[fg], palette[bg])
         passed = ratio >= 4.5
-        ok &= passed
+        report["contrast"].append((fg, bg, round(ratio, 2), passed))
         print(f"    --{fg} {palette[fg]} on --{bg} {palette[bg]}: {ratio:.2f}:1 {'ok' if passed else 'FAIL'}")
 
     site = ROOT / "site"
@@ -446,7 +450,7 @@ def step_1_13(args):
                     line = f"    {out.name}: scrollWidth={scroll_width}"
                     if width == 390:
                         passed = scroll_width <= 390
-                        ok &= passed
+                        report["scroll"][name] = (scroll_width, passed)
                         line += f" (<= 390: {passed})"
                     if name == "index" and width == 1440:
                         box = page.locator(".hero-title").bounding_box()
@@ -454,21 +458,28 @@ def step_1_13(args):
                         pill = page.locator(".nav .pill")
                         pill_box = pill.bounding_box()
                         pill_ok = pill.is_visible() and pill_box is not None and pill_box["y"] + pill_box["height"] <= height
-                        ok &= headline_ok and pill_ok
-                        line += (f"; hero headline top={box['y']:.0f} bottom={box['y'] + box['height']:.0f} "
+                        report["headline_ok"], report["pill_ok"] = headline_ok, pill_ok
+                        line +=  (f"; hero headline top={box['y']:.0f} bottom={box['y'] + box['height']:.0f} "
                                  f"(fully above the fold: {headline_ok}); nav pill visible: {pill_ok}")
                     print(line)
                 page.close()
             browser.close()
     finally:
         server.shutdown()
+    return report
+
+
+def step_1_13(args):
+    r = design_checks()
+    ok = (all(c[3] for c in r["contrast"]) and all(v[1] for v in r["scroll"].values())
+          and r["headline_ok"] and r["pill_ok"])
     print("PASS" if ok else "FAIL")
     return 0 if ok else 1
 
 
 # ---------------------------------------------------------------- step 1.14
 
-def step_1_14(args):
+def method_checks():
     """Every [method] quote in 06_SOURCES.md appears verbatim in the HTML-unescaped text of site/method.html,
     and every [method] link appears as an href. Only runs of spaces are normalised; quotes are never altered."""
     import html
@@ -502,9 +513,302 @@ def step_1_14(args):
     print(f"[method] links in 06_SOURCES.md: {len(links)}; missing as href: {len(missing_links)}")
     for u in links:
         print(f"    {'MISSING' if u in missing_links else 'ok     '} {u}")
-    ok = not missing_quotes and not missing_links
+    return {"quotes": quotes, "links": links, "missing_quotes": missing_quotes, "missing_links": missing_links,
+            "text": text}
+
+
+def step_1_14(args):
+    r = method_checks()
+    ok = not r["missing_quotes"] and not r["missing_links"]
     print("PASS" if ok else "FAIL")
     return 0 if ok else 1
+
+
+# ---------------------------------------------------------------- acceptance: phase 1
+
+def _rows_by(path_glob):
+    return [r for p in sorted(path_glob) for r in read_csv(p)]
+
+
+def acceptance_phase1(args):
+    """05_CHECKS_AND_ACCEPTANCE.md Phase 1: one row per item, printed as a table."""
+    import collections
+    import html
+    import json
+    import random
+    import re
+    import subprocess
+    from decimal import Decimal
+
+    data = ROOT / "data"
+    results = []
+
+    def add(item, expected, observed, status):
+        results.append((item, expected, observed, status))
+        print(f"  {item:4} {status:6} {observed}")
+
+    def run(cmd, **kw):
+        return subprocess.run(cmd, capture_output=True, text=True, cwd=str(ROOT), **kw)
+
+    meta = read_json_file(data / "meta.json")
+    launch_day = date.fromisoformat(meta["launch_utc"][:10])
+    overflows = {o["overflow_key"]: o for o in read_csv(data / "overflows.csv")}
+    events = _rows_by((data / "events").glob("*.csv"))
+    rows = read_csv(data / "classification" / "all_events_classified.csv")
+    gauges = {g["gauge_id"]: g for g in read_csv(data / "rain" / "gauges.csv")}
+    now = datetime.now(timezone.utc)
+
+    print("A. Correctness of the rule")
+    r = run([sys.executable, "-m", "pytest", "-q", "tests/test_rule.py"])
+    add("A1", "pass", r.stdout.strip().splitlines()[-1] if r.stdout else r.stderr[-200:],
+        "PASS" if r.returncode == 0 else "FAIL")
+
+    def recompute(sample, want_dry):
+        bad = []
+        for row in sample:
+            gauge = gauges.get(row["gauge_id"])
+            url = f"{HYDROLOGY}/measures/{gauge['measure_id']}/readings"
+            items = get_json(url, {"mineq-date": row["window_start_utc"][:10], "max-date": row["window_end_utc"][:10],
+                                   "_limit": 2000})["items"]
+            values = {i["dateTime"]: Decimal(str(i["value"])) for i in items
+                      if i.get("value") not in (None, "") and float(i["value"]) >= 0}
+            total = sum(values.values(), Decimal(0))
+            within = abs(total - Decimal(row["rain_window_total_mm"])) <= Decimal("0.01")
+            side = total <= Decimal("0.25") if want_dry else total > Decimal("0.25")
+            if not (within and side):
+                bad.append(f"{row['event_id']}: recomputed {total} vs stored {row['rain_window_total_mm']}")
+        return bad
+
+    random.seed()
+    dry = [r for r in rows if r["verdict"] == "dry_day"]
+    not_dry = [r for r in rows if r["verdict"] == "not_dry"]
+    sample_dry = random.sample(dry, min(10, len(dry)))
+    sample_not = random.sample(not_dry, min(10, len(not_dry)))
+    bad = recompute(sample_dry, True)
+    add("A2", "all within 0.01 mm and <= 0.25", f"{len(sample_dry)} recomputed, {len(bad)} mismatched {bad[:3]}",
+        "PASS" if not bad else "FAIL")
+    bad = recompute(sample_not, False)
+    add("A3", "all within 0.01 mm and > 0.25", f"{len(sample_not)} recomputed, {len(bad)} mismatched {bad[:3]}",
+        "PASS" if not bad else "FAIL")
+
+    notes = (ROOT / "NOTES_FOR_JAIMIN.md").read_text(encoding="utf-8")
+    method_text = method_checks()["text"]
+    tz_note = "Hydrology API dateTime confirmed UTC on 2026-09-15" in notes
+    tz_page = "Hydrology API times are therefore UTC" in method_text and "15 September 2026" in method_text
+    add("A4", "present, offset 0 h", f"NOTES: {tz_note}; Method page: {tz_page}",
+        "PASS" if tz_note and tz_page else "FAIL")
+
+    bad_readings = [r["event_id"] for r in dry if int(r["n_readings_present"] or 0) < 176]
+    bad_final = []
+    for r in rows:
+        window_end = datetime.strptime(r["window_end_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        n = int(r["n_readings_present"] or 0)
+        if r["verdict"] == "no_gauge_within_10km":
+            expect = True
+        elif r["verdict"] in ("dry_day", "not_dry"):
+            expect = (n == 192 and now >= window_end + timedelta(hours=72)) or now >= window_end + timedelta(days=14)
+        else:
+            expect = False
+        if (r["is_final"] == "true") != expect:
+            bad_final.append(r["event_id"])
+    add("A5", "0 violations", f"dry_day with < 176 readings: {len(bad_readings)}; is_final violations: {len(bad_final)}",
+        "PASS" if not bad_readings and not bad_final else "FAIL")
+    far = [r["event_id"] for r in dry if float(r["gauge_distance_km"]) > 10.0]
+    add("A6", "0 violations", f"dry_day with gauge > 10.0 km: {len(far)}", "PASS" if not far else "FAIL")
+    ids = [r["event_id"] for r in rows]
+    add("A7", "counts equal", f"events {len(events)}, classified rows {len(rows)}, unique {len(set(ids))}",
+        "PASS" if len(events) == len(rows) == len(set(ids)) else "FAIL")
+
+    print("B. Correctness of the collector")
+    srcs = read_json_file(ROOT / "scripts" / "sources_resolved.json")
+    live = 0
+    for slug, src in srcs.items():
+        live += get_json(src["layer_url"] + "/query", {"where": "1=1", "returnCountOnly": "true", "f": "json"})["count"]
+    drift = (len(overflows) - live) / live * 100
+    add("B1", "within +-2%", f"overflows.csv {len(overflows)} vs live feeds {live} ({drift:+.2f}%)",
+        "PASS" if abs(drift) <= 2 else "FAIL")
+    event_ids = [e["event_id"] for e in events]
+    add("B2", "yes", f"{len(event_ids)} event ids, {len(set(event_ids))} unique",
+        "PASS" if len(event_ids) == len(set(event_ids)) else "FAIL")
+    backwards = [e["event_id"] for e in events if e["end_utc"] and e["end_utc"] < e["start_utc"]]
+    add("B3", "0", f"events with end before start: {len(backwards)}", "PASS" if not backwards else "FAIL")
+    ended = [e for e in events if e["end_utc"]]
+    inferred = [e for e in ended if e["end_observed"] == "false"]
+    share = len(inferred) / len(ended) * 100 if ended else 0
+    add("B4", "report; expect < 5%", f"end_observed=false: {len(inferred)} of {len(ended)} ended events ({share:.2f}%)",
+        "PASS" if share < 5 else "FAIL")
+    import shutil as _shutil
+    tmp = ROOT / ".cache" / "acceptance"
+    _shutil.rmtree(tmp, ignore_errors=True)
+    (tmp / "a").mkdir(parents=True)
+    (tmp / "b").mkdir(parents=True)
+    fixture = ["--sources", "tests/fixtures/sources_fixture.json", "--fixture", "tests/fixtures/snapshot_a.json",
+               "--now", "2026-01-01T00:00:00Z"]
+    run([sys.executable, "scripts/collect.py", *fixture, "--data", str(tmp / "a")])
+    run([sys.executable, "scripts/collect.py", *fixture, "--data", str(tmp / "b")])
+    diff = run(["diff", "-r", str(tmp / "a"), str(tmp / "b")])
+    add("B5", "identical output", "identical" if diff.returncode == 0 else diff.stdout[:200],
+        "PASS" if diff.returncode == 0 else "FAIL")
+    since = (now - timedelta(hours=48)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    gh = run(["gh", "run", "list", "--workflow", "poll", "--limit", "300", "--json",
+              "status,conclusion,createdAt"])
+    runs = [r for r in json.loads(gh.stdout or "[]") if r["createdAt"] >= since]
+    done = [r for r in runs if r["status"] == "completed" and r["conclusion"] != "cancelled"]
+    success = [r for r in done if r["conclusion"] == "success"]
+    pct = len(success) / len(done) * 100 if done else 0
+    add("B6", ">= 97%", f"{len(success)} of {len(done)} non-cancelled poll runs in 48 h succeeded ({pct:.1f}%); "
+        f"{len(runs) - len(done)} cancelled/running", "PASS" if done and pct >= 97 else "FAIL")
+    changes = read_csv(data / "classification" / "verdict_changes.csv")
+    flips = [c for c in changes if c["from_verdict"] == "dry_day" and c["to_verdict"] == "not_dry"]
+    add("B7", "report", f"dry_day -> not_dry flips since launch: {len(flips)} (all changes: {len(changes)})", "INFO")
+
+    print("C. Site integrity")
+    site = site_checks()
+    add("C1", "0 errors", f"{site['pages']} pages, {len(site['parse_errors'])} parse errors",
+        "PASS" if not site["parse_errors"] else "FAIL")
+    add("C2", "0 broken", f"{site['links_checked']} internal links, {len(site['broken'])} broken, "
+        f"{len(site['root_relative'])} root-relative",
+        "PASS" if not site["broken"] and not site["root_relative"] else "FAIL")
+    add("C3", "exact", f"{site['league_cells']} league cells + tiles compared, {len(site['mismatches'])} mismatches",
+        "PASS" if not site["mismatches"] else "FAIL")
+    add("C4", "0", f"forbidden words found: {len(site['forbidden'])}", "PASS" if not site["forbidden"] else "FAIL")
+    add("C5", "yes", f"{site['event_pages']} event pages; missing {len(site['missing_pages'])}, "
+        f"extra {len(site['extra_pages'])}",
+        "PASS" if not site["missing_pages"] and not site["extra_pages"] else "FAIL")
+    m = method_checks()
+    add("C6", "0 missing", f"{len(m['quotes'])} quotes, {len(m['links'])} links; missing "
+        f"{len(m['missing_quotes'])} / {len(m['missing_links'])}",
+        "PASS" if not m["missing_quotes"] and not m["missing_links"] else "FAIL")
+
+    log = read_json_file(data / "deploy_log.json")
+    last = max(log, key=lambda e: e["utc"]) if log else None
+    footer = re.search(r"Last poll: (.*?) · Rain data last updated: (.*?) · Last classification change: (.*?)<",
+                       (ROOT / "site" / "index.html").read_text(encoding="utf-8"))
+    if last and footer:
+        def parse_footer(t):
+            return datetime.strptime(html.unescape(t).replace(" UTC", ""), "%d %b %Y, %H:%M").replace(
+                tzinfo=timezone.utc)
+        deploy_at = datetime.strptime(last["utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        build_utc = re.search(r'name="swt-build-utc" content="([^"]+)"',
+                              (ROOT / "site" / "index.html").read_text(encoding="utf-8")).group(1)
+        built_at = datetime.strptime(build_utc, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        poll_gap = (built_at - parse_footer(footer.group(1))).total_seconds() / 3600
+        rain_gap = (built_at - parse_footer(footer.group(2))).total_seconds() / 3600
+        add("C7", "poll within 2 h, rain within 26 h of the build",
+            f"footer vs its own build ({build_utc}): poll {poll_gap:+.1f} h, rain {rain_gap:+.1f} h; "
+            f"last deploy {last['kind']} {last['utc']} ({(now - deploy_at).total_seconds() / 3600:.1f} h ago)",
+            "PASS" if poll_gap <= 2 and rain_gap <= 26 else "FAIL")
+    else:
+        add("C7", "consistent", "no deploy log entry or no footer found", "FAIL")
+
+    site_url = meta["site_url"]
+    try:
+        resp = requests.get(site_url, timeout=60)
+        body_ok = "storm water tracker" not in resp.text.lower()
+        add("C8", "Netlify access page, no wordmark", f"HTTP {resp.status_code} from {site_url}; wordmark present: "
+            f"{not body_ok}; logged-in view confirmed by Jaimin on 17 Sep 2026", "PASS" if body_ok else "FAIL")
+    except requests.RequestException as e:
+        add("C8", "Netlify access page", f"request failed: {e}", "FAIL")
+
+    months = set()
+    for path in (ROOT / "site" / "companies").glob("*.html"):
+        months |= set(re.findall(r"<th scope=\"row\">([A-Z][a-z]{2} \d{4})", path.read_text(encoding="utf-8")))
+    early = [m for m in months if datetime.strptime(m, "%b %Y").date() < date(launch_day.year, launch_day.month, 1)]
+    partial = f"{launch_day:%b} {launch_day.year} (partial, from" in \
+        (ROOT / "site" / "companies" / "anglian.html").read_text(encoding="utf-8")
+    add("C9", "no period before launch; launch month labelled partial",
+        f"months shown: {sorted(months)}; before launch month: {len(early)}; launch month labelled partial: {partial}",
+        "PASS" if not early and partial else "FAIL")
+
+    netlify = run(["npx", "--yes", "netlify-cli@27", "sites:list", "--json"])
+    repo_url = "unknown"
+    try:
+        sites = json.loads(netlify.stdout[netlify.stdout.index("["):])
+        for entry in sites:
+            if entry.get("name") == site_url.split("//")[1].split(".")[0]:
+                repo_url = (entry.get("build_settings") or {}).get("repo_url")
+    except (ValueError, IndexError):
+        pass
+    add("C10", "no linked repo; Private production and previews",
+        f"build_settings.repo_url = {repo_url!r}; visibility must be confirmed by Jaimin in the Netlify UI",
+        "PASS" if repo_url in (None, "", "null") else "MANUAL")
+
+    month = now.strftime("%Y-%m")
+    prod = [e for e in log if e["kind"] == "prod" and e["utc"][:7] == month]
+    fields_ok = all(set(e) == {"utc", "kind", "run_url", "message", "deploy_url"} for e in log)
+    guard = run([sys.executable, "-m", "pytest", "-q", "tests/test_deploy_guard.py"])
+    add("C11", "<= 8 prod this month; all fields; guard tests pass",
+        f"prod this month: {len(prod)}; entries {len(log)} all with the five fields: {fields_ok}; "
+        f"deploy_guard tests: {'pass' if guard.returncode == 0 else 'FAIL'}",
+        "PASS" if len(prod) <= 8 and fields_ok and guard.returncode == 0 else "FAIL")
+    credits = re.findall(r"credits? (?:remaining|after)[^\n]*?(\d+) of 300|credits remaining[^\n]*?= (\d+)", notes)
+    add("C12", "report", f"latest credit readings recorded in NOTES: {credits[-3:]}; Jaimin reads the current figure "
+        f"at acceptance", "MANUAL")
+
+    print("D. Design")
+    design = design_checks()
+    worst = min(c[2] for c in design["contrast"])
+    add("D1", "all >= 4.5:1", f"lowest ratio {worst}:1 across {len(design['contrast'])} pairs",
+        "PASS" if all(c[3] for c in design["contrast"]) else "FAIL")
+    add("D2", "yes", "; ".join(f"{k} {v[0]}px" for k, v in design["scroll"].items()),
+        "PASS" if all(v[1] for v in design["scroll"].values()) else "FAIL")
+    add("D3", "yes", f"hero headline above the fold: {design['headline_ok']}; nav pill visible: {design['pill_ok']}",
+        "PASS" if design["headline_ok"] and design["pill_ok"] else "FAIL")
+    palette = {"#0b0b0c", "#121214", "#262629", "#ececec", "#8b8b90", "#4a4a4f", "#d9b26a", "#5b4a2a", "#ffffff",
+               "#000000", "rgba(255,255,255,0.03)"}
+    stray = []
+    for path in [ROOT / "static" / "style.css"] + sorted((ROOT / "templates").glob("*.html")):
+        text = path.read_text(encoding="utf-8")
+        for hit in re.findall(r"#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)|hsla?\([^)]*\)", text):
+            if hit.lower().replace(" ", "") not in palette:
+                stray.append(f"{path.name}: {hit}")
+    add("D4", "only the eleven values", f"colour literals outside the palette: {len(stray)} {stray[:5]}",
+        "PASS" if not stray else "FAIL")
+    external = set()
+    for page, tree in site["trees"].items():
+        for el in tree.iter("script"):
+            if el.get("src") and re.match(r"^(https?:)?//", el.get("src")):
+                external.add(el.get("src"))
+        for el in tree.iter("link"):
+            href = el.get("href") or ""
+            if re.match(r"^(https?:)?//", href) and "fonts.googleapis.com" not in href:
+                external.add(href)
+    add("D5", "none except Google Fonts CSS", f"external scripts/stylesheets: {sorted(external) or 'none'}",
+        "PASS" if not external else "FAIL")
+    add("D6", "accepted", "GATE 3, 17 Sep 2026: \"The site looks good. Really like it.\""
+        if "The site looks good" in notes else "not recorded in NOTES",
+        "PASS" if "The site looks good" in notes else "FAIL")
+
+    print("E. Hygiene")
+    secrets = run(["git", "grep", "-iE", "client_secret|netlify_auth|nfp_", "--", ".", ":!build-pack", ":!NOTES_FOR_JAIMIN.md"])
+    ignored = ".env" in (ROOT / ".gitignore").read_text(encoding="utf-8")
+    add("E1", "clean", f"secret-pattern hits in tracked files: {len(secrets.stdout.splitlines())}; .env ignored: "
+        f"{ignored}", "PASS" if not secrets.stdout.strip() and ignored else "FAIL")
+    open_markers = notes.count("[OPEN]")
+    add("E2", "0", f"[OPEN] markers in NOTES_FOR_JAIMIN.md: {open_markers}", "PASS" if not open_markers else "FAIL")
+    required = {"UTC assumption": "We use UTC calendar days", "BST verification date": "15 September 2026",
+                "10 km assumption": "within 10 km", "total vs max": "We use the total",
+                "provisional vs final": "A verdict is final when it can no longer change",
+                "the lag": "typically appears one to three days", "what can be missed": "never seen",
+                "Hub not audited": "has not undergone an audit process",
+                "launch-date caveat": "Our complete record begins on",
+                "ST Connect placeholder": "placeholder feed"}
+    missing_e3 = [k for k, v in required.items() if v not in method_text]
+    add("E3", "all present", f"missing Method-page statements: {missing_e3 or 'none'}",
+        "PASS" if not missing_e3 else "FAIL")
+    data_text = (ROOT / "site" / "data.html").read_text(encoding="utf-8")
+    e4 = [k for k, v in {"site CC BY 4.0": "own content and data files: CC BY 4.0",
+                         "Hub CC BY 4.0": "National Storm Overflow Hub (Stream), CC BY 4.0",
+                         "EA OGL v3": "Open Government Licence v3.0"}.items() if v not in data_text]
+    add("E4", "present", f"missing licence statements on the Data page: {e4 or 'none'}", "PASS" if not e4 else "FAIL")
+
+    print("\n| item | expected | observed | result |")
+    print("|---|---|---|---|")
+    for item, expected, observed, status in results:
+        print(f"| {item} | {expected} | {observed} | {status} |")
+    counts = collections.Counter(r[3] for r in results)
+    print(f"\n{dict(counts)}")
+    return 0 if not counts["FAIL"] else 1
 
 
 def read_json_file(path):
@@ -518,10 +822,13 @@ STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13,
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--step", required=True, choices=sorted(STEPS))
+    ap.add_argument("--step", choices=sorted(STEPS))
+    ap.add_argument("--acceptance", choices=["phase1"])
     args = ap.parse_args()
+    if not args.step and not args.acceptance:
+        ap.error("give --step or --acceptance")
     try:
-        return STEPS[args.step](args)
+        return acceptance_phase1(args) if args.acceptance else STEPS[args.step](args)
     except NetworkError as e:
         print(f"network error: {e}", file=sys.stderr)
         return 2

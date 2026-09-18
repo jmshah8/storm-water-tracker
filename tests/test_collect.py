@@ -182,6 +182,24 @@ def test_end_before_start_is_left_empty(tmp_path):
     assert "ends_before_start_left_empty=1" in stdout.splitlines()
 
 
+def test_retimed_start_past_a_stored_end_clears_the_end(tmp_path):
+    # a short event whose start is later re-timed past its own end, within the 15-minute near-duplicate window
+    fx = snapshot_a()
+    attrs(fx, "thames", "TW001")["LatestEventEnd"] = iso_to_ms("2025-12-31T10:05:00Z")
+    data = tmp_path / "data"
+    collect(data, write_fixture(tmp_path, "a.json", fx), NOW_1)
+    event_id = f"thames:TW001:{iso_to_ms('2025-12-31T10:00:00Z')}"
+    assert events(data)[event_id]["end_utc"] == "2025-12-31T10:05:00Z"
+
+    # the company re-times the start to after the end it already published (seen live on 18 Sep 2026)
+    attrs(fx, "thames", "TW001")["LatestEventStart"] = iso_to_ms("2025-12-31T10:10:00Z")
+    stdout = collect(data, write_fixture(tmp_path, "b.json", fx), NOW_2)
+    ev = events(data)[event_id]
+    assert ev["start_utc"] == "2025-12-31T10:10:00Z"
+    assert (ev["end_utc"], ev["duration_min"], ev["end_observed"]) == ("", "", "")
+    assert "ends_before_start_cleared=1" in stdout.splitlines()
+
+
 def test_unchanged_feed_with_millisecond_jitter_changes_no_file(tmp_path):
     data = tmp_path / "data"
     collect(data, SNAPSHOT_A, NOW_1)
