@@ -3,7 +3,7 @@ on:
   schedule:
     - cron: "15 * * * *"
   workflow_run:
-    workflows: [rain]
+    workflows: [rain, radar]
     types: [completed]
   workflow_dispatch:
 concurrency: {group: data-writers, cancel-in-progress: false}

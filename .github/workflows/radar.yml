@@ -1,0 +1,48 @@
+name: radar
+on:
+  schedule:
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+    inputs:
+      start_date: {description: "back-fill from this UTC date (YYYY-MM-DD)", type: string}
+      end_date: {description: "back-fill to this UTC date, inclusive (at most 10 days)", type: string}
+concurrency: {group: data-writers, cancel-in-progress: false}
+permissions: {contents: write}
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with: {fetch-depth: 1}
+      - uses: actions/setup-python@v7
+        with: {python-version: "3.12", cache: pip}
+      - run: pip install -r requirements.txt
+      - name: sample radar days
+        env:
+          START: ${{ inputs.start_date }}
+          END: ${{ inputs.end_date }}
+        run: |
+          set -euo pipefail
+          git config user.name "swt-bot"
+          git config user.email "swt-bot@users.noreply.github.com"
+          if [ -n "${START:-}" ] || [ -n "${END:-}" ]; then
+            if [ -z "${START:-}" ] || [ -z "${END:-}" ]; then echo "give both start_date and end_date"; exit 1; fi
+            days=$(( ( $(date -u -d "$END" +%s) - $(date -u -d "$START" +%s) ) / 86400 + 1 ))
+            if [ "$days" -lt 1 ] || [ "$days" -gt 10 ]; then echo "range must be 1-10 days, got $days"; exit 1; fi
+            dates=$(for i in $(seq 0 $((days - 1))); do date -u -d "$START +$i day" +%F; done)
+          else
+            # the daily run: yesterday, and the day before to pick up late frames
+            dates="$(date -u -d 'yesterday' +%F) $(date -u -d '2 days ago' +%F)"
+          fi
+          for d in $dates; do
+            echo "--- radar $d"
+            python scripts/radar.py day "$d"
+            git add data/radar
+            if git diff --cached --quiet; then
+              echo "no changes"
+            else
+              git commit -m "radar: $d"
+              for attempt in 1 2 3 4 5; do git pull --rebase && git push && break || sleep 10; done
+            fi
+          done
