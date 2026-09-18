@@ -54,6 +54,7 @@
     <li><strong>gauge_id</strong>, <strong>gauge_label</strong>, <strong>gauge_distance_km</strong>: the gauge used; empty if none.</li>
     <li><strong>rain_day_mm</strong>: rain on day_utc. <strong>rain_prev24_mm</strong>: rain on the day before. <strong>rain_window_total_mm</strong>: the two added. <strong>rain_window_max15_mm</strong>: the largest single 15-minute reading in the window.</li>
     <li><strong>n_readings_present</strong>, <strong>n_readings_expected</strong>: 15-minute readings found, of 192.</li>
+    <li><strong>n_gauges_skipped_stuck</strong>: how many nearer gauges were skipped because they had stopped reporting rain (see the <a href="{{ root }}method.html">Method</a>).</li>
     <li><strong>verdict</strong>: <code>dry_day</code>, <code>not_dry</code>, <code>pending_rain_data</code>, <code>no_gauge_within_10km</code> or <code>insufficient_readings</code>. <strong>verdict_basis</strong>: <code>total</code>. <strong>rule_version</strong>: <code>{{ rule_version }}</code>.</li>
     <li><strong>classified_utc</strong>: when this row's classification last changed.</li>
     <li><strong>radar_window_total_mm</strong>: Met Office radar rainfall over the overflow's own 1 km square across the same 48-hour window. <strong>radar_3x3_max_total_mm</strong>: the highest of the nine squares around it. <strong>radar_status</strong>: <code>complete</code> (both days have at least 92 of 96 radar frames), <code>partial</code> (both days present, fewer frames) or <code>missing</code>. These are a second opinion and never change a verdict.</li>

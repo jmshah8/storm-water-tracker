@@ -1,11 +1,11 @@
-"""Tests for swt/rule.py, dry-day-v1 (01_SPEC.md §5.2–5.3)."""
+"""Tests for swt/rule.py, dry-day-v2 (01_SPEC.md §5.2–5.3)."""
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from swt.geo import haversine_km, nearest_gauges  # noqa: E402
-from swt.rule import classify_event  # noqa: E402
+from swt.rule import RULE_VERSION, classify_event  # noqa: E402
 
 START = "2026-09-10T14:00:00Z"          # day D = 2026-09-10; window 09-09T00:00Z .. 09-11T00:00Z
 NOW_EARLY = "2026-09-12T00:00:00Z"      # < window_end + 72 h
@@ -98,9 +98,9 @@ def test_utc_day_boundary():
 
 def test_basis_and_version_echoed():
     r = classify_event(START, [NEAR], rain(both_days("near", ("0", "0", 96), ("0", "0", 96))), NOW_EARLY,
-                       rule_version="dry-day-v1")
+                       rule_version=RULE_VERSION)
     assert r["verdict_basis"] == "total"
-    assert r["rule_version"] == "dry-day-v1"
+    assert r["rule_version"] == RULE_VERSION
     assert r["n_readings_expected"] == "192"
 
 
@@ -111,6 +111,36 @@ def test_is_final():
     assert classify_event(START, [NEAR], complete, NOW_EARLY)["is_final"] == "false"
     assert classify_event(START, [NEAR], complete, NOW_AFTER_72H)["is_final"] == "true"
     assert classify_event(START, [NEAR], partial, NOW_AFTER_14D)["is_final"] == "true"
+
+
+def test_stuck_gauge_is_skipped(tmp_path=None):
+    """dry-day-v2: a gauge that has stopped reporting rain is skipped, like one with too few readings."""
+    table = both_days("near", ("0", "0", 96), ("0", "0", 96))        # the stuck gauge: says dry
+    table.update(both_days("far", ("1.2", "0.4", 96), ("0", "0", 96)))  # a working gauge: says it rained
+    stuck = lambda gauge_id, day: "stuck" if gauge_id == "near" else None  # noqa: E731
+
+    without = classify_event(START, [NEAR, FAR], rain(table), NOW_EARLY)
+    assert (without["verdict"], without["gauge_id"], without["n_gauges_skipped_stuck"]) == ("dry_day", "near", "0")
+
+    with_check = classify_event(START, [NEAR, FAR], rain(table), NOW_EARLY, gauge_unusable=stuck)
+    assert with_check["verdict"] == "not_dry"
+    assert with_check["gauge_id"] == "far"
+    assert with_check["n_gauges_skipped_stuck"] == "1"
+
+
+def test_all_gauges_stuck_leaves_the_event_unclassified():
+    table = both_days("near", ("0", "0", 96), ("0", "0", 96))
+    everything_stuck = lambda gauge_id, day: "stuck"  # noqa: E731
+    early = classify_event(START, [NEAR], rain(table), NOW_EARLY, gauge_unusable=everything_stuck)
+    late = classify_event(START, [NEAR], rain(table), NOW_AFTER_72H, gauge_unusable=everything_stuck)
+    assert early["verdict"] == "pending_rain_data"
+    assert late["verdict"] == "insufficient_readings"
+    assert late["n_gauges_skipped_stuck"] == "1"
+
+
+def test_rule_version_is_v2():
+    r = classify_event(START, [NEAR], rain(both_days("near", ("0", "0", 96), ("0", "0", 96))), NOW_EARLY)
+    assert r["rule_version"] == "dry-day-v2"
 
 
 def test_geo():

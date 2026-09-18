@@ -168,6 +168,7 @@ Columns: `date` (UTC), `gauge_id`, `total_mm` (sum of 15-min values), `max15_mm`
 | `rain_window_total_mm` | sum of the two |
 | `rain_window_max15_mm` | max single 15-min reading in the window |
 | `n_readings_present`, `n_readings_expected` | expected 192 |
+| `n_gauges_skipped_stuck` | how many nearer gauges were skipped as stuck (`dry-day-v2`) |
 | `verdict` | one of `dry_day`, `not_dry`, `pending_rain_data`, `no_gauge_within_10km`, `insufficient_readings` |
 | `verdict_basis` | `total` (see §5.2) |
 | `rule_version` | `dry-day-v1` |
@@ -212,7 +213,7 @@ Also `data/classification/verdict_changes.csv` (key: `event_id`,`changed_utc`): 
 
 Why total, not max-15-min: the sentence is ambiguous between "no single reading above 0.25 mm" and "no more than 0.25 mm of rain". Requiring the *total* to be ≤ 0.25 mm is the stricter reading — it flags fewer events — so it minimises false accusations. Both numbers are stored so the alternative reading can be recomputed. `verdict_basis = total` records which was used.
 
-5.3 **Gauge selection and verdict states.** Candidates = gauges in `gauges.csv` within **10.0 km** (haversine, WGS84) of the overflow, ordered by distance. Choose the nearest candidate whose window has `n_readings_present ≥ 176` (≥ 91.7% of 192); if it exists, verdict is `dry_day` or `not_dry` by §5.2.
+5.3 **Gauge selection and verdict states.** Candidates = gauges in `gauges.csv` within **10.0 km** (haversine, WGS84) of the overflow, ordered by distance. **A candidate that has stopped reporting rain is skipped first (`dry-day-v2`, 18 Sep 2026, agreed with Jaimin): a gauge counts as stuck for a day when, over the 30 days ending that day, it has at least 5 complete days (`n_readings ≥ 88`) and recorded 0.00 mm on every one of them, and either at least two gauges within 20.0 km recorded more than 1 mm on one of those days, or complete radar recorded more than 1 mm over the overflow in the window. The count of skipped gauges is stored in `n_gauges_skipped_stuck`.** Then choose the nearest remaining candidate whose window has `n_readings_present ≥ 176` (≥ 91.7% of 192); if it exists, verdict is `dry_day` or `not_dry` by §5.2.
 Otherwise, in this order:
 - no candidate within 10 km → `no_gauge_within_10km` (final);
 - `now_utc < window_end_utc + 72 h` → `pending_rain_data` (the Hydrology API lags ~2 days; rain may still arrive). This is decided by **time**, never by whether a daily file exists;

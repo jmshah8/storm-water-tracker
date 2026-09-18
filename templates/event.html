@@ -35,6 +35,9 @@
         <dt>Window total</dt><dd><strong data-value="{{ ev.rain_window_total_mm }}">{{ ev.rain_window_total_mm }} mm</strong></dd>
         <dt>Largest 15-minute reading</dt><dd><span data-value="{{ ev.rain_window_max15_mm }}">{{ ev.rain_window_max15_mm }}</span> mm</dd>
         <dt>Readings present</dt><dd><span data-value="{{ ev.n_readings_present }}">{{ ev.n_readings_present }}</span> of {{ ev.n_readings_expected }}</dd>
+        {% if ev.n_gauges_skipped_stuck not in ('0', '') %}
+        <dt>Nearer gauges skipped</dt><dd><span data-metric="gauges-skipped" data-value="{{ ev.n_gauges_skipped_stuck }}">{{ ev.n_gauges_skipped_stuck }}</span>, because they had recorded no rain at all for days while other gauges nearby, or the radar, recorded rain</dd>
+        {% endif %}
         {% if quality %}<dt>Quality of readings</dt><dd>{{ quality.n_unchecked }} unchecked · {{ quality.n_good }} good · {{ quality.n_other_quality }} other</dd>{% endif %}
         {% else %}
         <dt>Gauge used</dt><dd>None yet: no gauge within 10 km has at least 176 of the 192 readings for this window.</dd>
