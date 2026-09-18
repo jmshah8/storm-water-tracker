@@ -524,6 +524,75 @@ def step_1_14(args):
     return 0 if ok else 1
 
 
+# ---------------------------------------------------------------- step 2.3
+
+def rank(values):
+    """Ranks, averaging ties (enough for a Spearman correlation without scipy)."""
+    import numpy as np
+
+    values = np.asarray(values, dtype=float)
+    order = values.argsort()
+    ranks = np.empty(len(values), dtype=float)
+    ranks[order] = np.arange(len(values), dtype=float)
+    for value in np.unique(values):
+        tied = values == value
+        if tied.sum() > 1:
+            ranks[tied] = ranks[tied].mean()
+    return ranks
+
+
+def step_2_3(args):
+    """Radar-vs-gauge sanity on a wet day: 20 wettest gauges and 20 with no rain (03 plan, CHECK 2.3d)."""
+    import ast
+    import numpy as np
+
+    sys.path.insert(0, str(ROOT))
+    from swt.radar import Grid
+
+    if not args.grid:
+        print("--step 2.3 needs --grid PATH (written by scripts/radar.py day --save-grid)", file=sys.stderr)
+        return 1
+    saved = np.load(args.grid, allow_pickle=False)
+    total, valid = saved["total"], saved["valid"]
+    grid = Grid(ast.literal_eval(str(saved["where"])), str(saved["origin"]))
+    day = Path(args.grid).stem.replace("radar_", "")
+    gauges = {g["gauge_id"]: g for g in read_csv(ROOT / "data" / "rain" / "gauges.csv")}
+    rain = [r for r in read_csv(ROOT / "data" / "rain" / "daily" / f"{day}.csv") if int(r["n_readings"]) >= 88]
+    print(f"day {day}: {len(rain)} gauges with a complete day; radar frames {int(saved['n_frames'])}/96")
+
+    def radar_at(gauge):
+        r, c = grid.to_pixel(float(gauge["latitude"]), float(gauge["longitude"]))
+        if not grid.in_bounds(r, c) or valid[r, c] == 0:
+            return None
+        return float(total[r, c])
+
+    wet = sorted(rain, key=lambda r: -float(r["total_mm"]))[:20]
+    dry = [r for r in rain if float(r["total_mm"]) == 0][:20]
+    pairs = []
+    for row in wet + dry:
+        gauge = gauges.get(row["gauge_id"])
+        value = radar_at(gauge) if gauge else None
+        if value is not None:
+            pairs.append((gauge["label"], float(row["total_mm"]), value))
+    print(f"points compared: {len(pairs)} ({len(wet)} wettest gauges, {len(dry)} with 0 mm)")
+    for label, gauge_mm, radar_mm in pairs[:5]:
+        print(f"    {label[:28]:28} gauge {gauge_mm:6.1f} mm   radar {radar_mm:6.1f} mm")
+    if len(pairs) < 20:
+        print("INCONCLUSIVE: fewer than 20 usable points")
+        return 1
+    gauge_mm = [p[1] for p in pairs]
+    radar_mm = [p[2] for p in pairs]
+    gr, rr = rank(gauge_mm), rank(radar_mm)
+    correlation = float(np.corrcoef(gr, rr)[0, 1])
+    zero_group = [p[2] for p in pairs if p[1] == 0]
+    median_zero = float(np.median(zero_group)) if zero_group else float("nan")
+    print(f"rank correlation across {len(pairs)} points: {correlation:.3f} (pass > 0.6)")
+    print(f"median radar total at the {len(zero_group)} zero-rain gauges: {median_zero:.2f} mm (pass < 1 mm)")
+    ok = correlation > 0.6 and median_zero < 1
+    print("PASS" if ok else "FAIL — GATE 2.3")
+    return 0 if ok else 1
+
+
 # ---------------------------------------------------------------- acceptance: phase 1
 
 def _rows_by(path_glob):
@@ -828,13 +897,14 @@ def read_json_file(path):
         return json.load(f)
 
 
-STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14}
+STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14, "2.3": step_2_3}
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--step", choices=sorted(STEPS))
     ap.add_argument("--acceptance", choices=["phase1"])
+    ap.add_argument("--grid", help="step 2.3: the .npz written by scripts/radar.py day --save-grid")
     args = ap.parse_args()
     if not args.step and not args.acceptance:
         ap.error("give --step or --acceptance")
