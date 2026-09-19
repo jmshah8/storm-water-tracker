@@ -122,7 +122,7 @@ def accumulate_day(day, cache_dir, keep_files=False):
         valid += present
         n_frames += 1
     if total is None:
-        raise OSError(f"no radar frames found for {day}")
+        return None
     return total, max15, valid, meta, n_frames
 
 
@@ -194,10 +194,16 @@ def run_day(args):
     cache_dir.mkdir(parents=True, exist_ok=True)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     try:
-        total, max15, valid, meta, n_frames = accumulate_day(day, cache_dir, keep_files=args.keep_files)
+        accumulated = accumulate_day(day, cache_dir, keep_files=args.keep_files)
     except (requests.RequestException, ET.ParseError, OSError) as e:
         print(f"network error: {e}", file=sys.stderr)
         return 2
+    if accumulated is None:
+        # The Met Office archive itself has gaps (e.g. 13 and 14 Dec 2024 hold no files at all). That is a
+        # day with no radar, not an error: write nothing and let the caller carry on to the next day.
+        print(f"{args.date}: no radar frames published for this day; nothing written")
+        return 0
+    total, max15, valid, meta, n_frames = accumulated
     rows = sample_overflows(total, max15, valid, meta, day, n_frames, overflows, now)
     out = ROOT / "data" / "radar" / "daily" / f"{args.date}.csv.gz"
     write_daily(out, rows)
