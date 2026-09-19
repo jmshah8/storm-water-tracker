@@ -114,7 +114,9 @@ def pull(args):
     now = now_iso()
     existing = read_raw(RAW_PATH)
     seen = {identity(r): r for r in existing}
-    print(f"existing rows: {len(existing)}; pulling {args.start} .. {args.end}")
+    newest_held = max((r["datetime"] for r in existing), default="")
+    print(f"existing rows: {len(existing)} (newest {newest_held or 'none'}); pulling {args.start} .. {args.end}"
+          + ("; full walk" if args.full else "; stopping once the archive we already hold is reached"))
 
     added, page = 0, args.start_offset // PAGE
     while True:
@@ -140,6 +142,12 @@ def pull(args):
             write_raw(RAW_PATH, list(seen.values()))
             print(f"    checkpoint: {len(seen)} rows written", flush=True)
         if len(batch) < PAGE or min(stamps)[:10] < args.start:
+            break
+        # Routine runs only need what is new. Once a page is entirely older than the newest row we already
+        # hold, everything below it is already in the file, so stop rather than page through years of
+        # history (deep offsets are also where the API starts returning empty pages).
+        if not args.full and newest_held and max(stamps) < newest_held:
+            print(f"    caught up with the archive already held ({newest_held}); stopping", flush=True)
             break
 
     rows = list(seen.values())
@@ -242,6 +250,8 @@ def main():
     q.add_argument("--to", dest="end", default=datetime.now(timezone.utc).date().isoformat())
     q.add_argument("--start-offset", type=int, default=0, help="resume paging from this offset")
     q.add_argument("--checkpoint-every", type=int, default=10, help="write the file every N pages")
+    q.add_argument("--full", action="store_true",
+                   help="walk the whole archive back to --from instead of stopping once caught up")
     args = ap.parse_args()
     try:
         return probe(args) if args.command == "probe" else pull(args)
