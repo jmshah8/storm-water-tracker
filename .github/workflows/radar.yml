@@ -5,13 +5,13 @@ on:
   workflow_dispatch:
     inputs:
       start_date: {description: "back-fill from this UTC date (YYYY-MM-DD)", type: string}
-      end_date: {description: "back-fill to this UTC date, inclusive (at most 10 days)", type: string}
+      end_date: {description: "back-fill to this UTC date, inclusive (at most 60 days)", type: string}
 concurrency: {group: data-writers, cancel-in-progress: false}
 permissions: {contents: write}
 jobs:
   radar:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v7
         with: {fetch-depth: 1}
@@ -29,7 +29,9 @@ jobs:
           if [ -n "${START:-}" ] || [ -n "${END:-}" ]; then
             if [ -z "${START:-}" ] || [ -z "${END:-}" ]; then echo "give both start_date and end_date"; exit 1; fi
             days=$(( ( $(date -u -d "$END" +%s) - $(date -u -d "$START" +%s) ) / 86400 + 1 ))
-            if [ "$days" -lt 1 ] || [ "$days" -gt 10 ]; then echo "range must be 1-10 days, got $days"; exit 1; fi
+            # 60 days takes about 90 minutes, well inside the job limit, and means far fewer dispatches
+            # from a laptop whose connection keeps dropping (01_SPEC.md §9.3 said 10; raised 19 Sep 2026)
+            if [ "$days" -lt 1 ] || [ "$days" -gt 60 ]; then echo "range must be 1-60 days, got $days"; exit 1; fi
             dates=$(for i in $(seq 0 $((days - 1))); do date -u -d "$START +$i day" +%F; done)
           else
             # the daily run: yesterday, and the day before to pick up late frames
