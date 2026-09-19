@@ -116,7 +116,7 @@ def pull(args):
     seen = {identity(r): r for r in existing}
     print(f"existing rows: {len(existing)}; pulling {args.start} .. {args.end}")
 
-    added, page = 0, 0
+    added, page = 0, args.start_offset // PAGE
     while True:
         payload = get("alerts", {"limit": PAGE, "offset": page * PAGE})
         batch = payload["items"]
@@ -132,8 +132,13 @@ def pull(args):
                 seen[key] = row
                 fresh += 1
         added += fresh
-        print(f"    offset {page * PAGE:6}: {len(batch):5} records {min(stamps)} .. {max(stamps)}; new {fresh}")
+        print(f"    offset {page * PAGE:6}: {len(batch):5} records {min(stamps)} .. {max(stamps)}; new {fresh}",
+              flush=True)
         page += 1
+        # save as we go: this walks years of history, and an interrupted run must not lose everything
+        if page % args.checkpoint_every == 0:
+            write_raw(RAW_PATH, list(seen.values()))
+            print(f"    checkpoint: {len(seen)} rows written", flush=True)
         if len(batch) < PAGE or min(stamps)[:10] < args.start:
             break
 
@@ -235,6 +240,8 @@ def main():
     q = sub.add_parser("pull", help="page back through /alerts into data/thames_history/alerts_raw.csv.gz")
     q.add_argument("--from", dest="start", default="2022-04-01")
     q.add_argument("--to", dest="end", default=datetime.now(timezone.utc).date().isoformat())
+    q.add_argument("--start-offset", type=int, default=0, help="resume paging from this offset")
+    q.add_argument("--checkpoint-every", type=int, default=10, help="write the file every N pages")
     args = ap.parse_args()
     try:
         return probe(args) if args.command == "probe" else pull(args)
