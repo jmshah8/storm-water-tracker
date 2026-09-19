@@ -4,7 +4,9 @@ on:
     inputs:
       job: {type: choice, options: [pull-alerts, rain-backfill], default: pull-alerts}
       month: {description: "rain-backfill only: YYYY-MM", type: string}
-concurrency: {group: data-writers, cancel-in-progress: false}
+# Its own lane: it writes only data/thames_history, so it never races the collector, rainfall, radar or
+# classify jobs, and sharing the data-writers lane just meant GitHub cancelled it behind a long radar run.
+concurrency: {group: thames-history, cancel-in-progress: false}
 permissions: {contents: write}
 jobs:
   pull-alerts:
