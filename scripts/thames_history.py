@@ -4,6 +4,8 @@
     thames_history.py probe [--pages N]   confirm the API contract, the earliest date and the
                                           timezone of `datetime`, by comparing Start alerts with the
                                           discharges we recorded live from the National Storm Overflow Hub
+    thames_history.py events              turn the raw alerts into events, map them to Hub overflows and
+                                          split them at launch (pre-launch history vs the overlap period)
     thames_history.py pull --from DATE --to DATE
                                           page back through /alerts into data/thames_history/alerts_raw.csv.gz
                                           (columns as returned plus fetched_utc, de-duplicated, sorted);
@@ -160,6 +162,217 @@ def pull(args):
     return 0
 
 
+EVENT_FIELDS = ["event_id", "overflow_key", "company_slug", "start_utc", "end_utc", "duration_min", "source",
+                "first_observed_utc", "last_observed_utc", "end_observed"]
+OFFLINE_FIELDS = ["overflow_key", "company_slug", "offline_start_utc", "offline_end_utc", "offline_end_source",
+                  "first_observed_utc", "last_observed_utc", "source"]
+NEAR_DUPLICATE = timedelta(minutes=15)
+COORD_MATCH_M = 100.0
+
+
+def to_utc(stamp):
+    """Thames `datetime` has no zone; step 3.1 showed it is UTC (0-minute shift, 223 matches vs 9)."""
+    return datetime.fromisoformat(stamp).replace(tzinfo=timezone.utc)
+
+
+def iso(moment):
+    return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def location_map(alerts):
+    """(locationName, permitNumber) -> overflow_key, plus a report of how each was matched."""
+    from swt.geo import haversine_km
+    import pyproj
+
+    hub = [o for o in read_csv(ROOT / "data" / "overflows.csv") if o["company_slug"] == "thames"]
+    by_id = {o["source_id"]: o for o in hub}
+
+    status = get("status", {"limit": PAGE})["items"]
+    while True:
+        more = get("status", {"limit": PAGE, "offset": len(status)})["items"] if len(status) % PAGE == 0 else []
+        if not more:
+            break
+        status += more
+    by_pair = {}
+    for s in status:
+        if s.get("uniqueId"):
+            by_pair.setdefault((s["locationName"], s["permitNumber"]), s["uniqueId"])
+
+    to_wgs84 = pyproj.Transformer.from_crs("EPSG:27700", "EPSG:4326", always_xy=True)
+    mapping, how = {}, Counter()
+    unmatched = []
+    for pair in {(a["locationName"], a["permitNumber"]) for a in alerts}:
+        overflow_id = by_pair.get(pair)
+        if overflow_id and overflow_id in by_id:
+            mapping[pair] = f"thames:{overflow_id}"
+            how["by id"] += 1
+            continue
+        sample = next(a for a in alerts if (a["locationName"], a["permitNumber"]) == pair)
+        try:
+            lon, lat = to_wgs84.transform(float(sample["x"]), float(sample["y"]))
+        except (TypeError, ValueError):
+            lon = lat = None
+        best = None
+        if lat is not None:
+            for o in hub:
+                if not o["latitude"]:
+                    continue
+                metres = haversine_km(lat, lon, float(o["latitude"]), float(o["longitude"])) * 1000
+                if best is None or metres < best[0]:
+                    best = (metres, o["source_id"])
+        if best and best[0] <= COORD_MATCH_M:
+            mapping[pair] = f"thames:{best[1]}"
+            how["by coordinates"] += 1
+        else:
+            mapping[pair] = f"thames:TWAPI:{pair[0]}"
+            how["unmatched"] += 1
+            unmatched.append((pair[0], pair[1], f"{best[0]:.0f} m to nearest" if best else "no coordinates"))
+    return mapping, how, unmatched
+
+
+def build_events(alerts, mapping, fetched):
+    """Pair Start with the next Stop per location; Start followed by Start closes the first (inferred)."""
+    events, offline = [], []
+    by_location = defaultdict(list)
+    for a in alerts:
+        by_location[(a["locationName"], a["permitNumber"])].append(a)
+
+    for pair, records in by_location.items():
+        overflow_key = mapping[pair]
+        records.sort(key=lambda a: a["datetime"])
+        open_start = open_offline = None
+        for a in records:
+            when = to_utc(a["datetime"])
+            kind = a["alertType"]
+            if kind == "Start":
+                if open_start is not None:       # a Start with no Stop: close it at this one
+                    events.append(make_event(overflow_key, open_start, when, False, fetched))
+                open_start = when
+            elif kind == "Stop":
+                if open_start is not None:
+                    events.append(make_event(overflow_key, open_start, when, True, fetched))
+                    open_start = None
+            elif kind == "Offline start":
+                open_offline = when
+            elif kind == "Offline stop" and open_offline is not None:
+                offline.append({"overflow_key": overflow_key, "company_slug": "thames",
+                                "offline_start_utc": iso(open_offline), "offline_end_utc": iso(when),
+                                "offline_end_source": "feed", "first_observed_utc": fetched,
+                                "last_observed_utc": fetched, "source": "thames_api"})
+                open_offline = None
+        if open_start is not None:               # still discharging at the end of the archive
+            events.append(make_event(overflow_key, open_start, None, None, fetched))
+        if open_offline is not None:
+            offline.append({"overflow_key": overflow_key, "company_slug": "thames",
+                            "offline_start_utc": iso(open_offline), "offline_end_utc": "",
+                            "offline_end_source": "", "first_observed_utc": fetched,
+                            "last_observed_utc": fetched, "source": "thames_api"})
+    return events, offline
+
+
+def make_event(overflow_key, start, end, observed, fetched):
+    start_ms = int(start.timestamp() * 1000)
+    duration = "" if end is None else str(int((end - start).total_seconds() // 60))
+    return {"event_id": f"{overflow_key}:{start_ms}", "overflow_key": overflow_key, "company_slug": "thames",
+            "start_utc": iso(start), "end_utc": "" if end is None else iso(end), "duration_min": duration,
+            "source": "thames_api", "first_observed_utc": fetched, "last_observed_utc": fetched,
+            "end_observed": "" if observed is None else ("true" if observed else "false")}
+
+
+def events_command(args):
+    from swt.io import write_csv
+    from swt.timeutil import now_iso
+
+    fetched = now_iso()
+    alerts = read_raw(RAW_PATH)
+    if not alerts:
+        print(f"{RAW_PATH} is missing or empty; run `pull` first", file=sys.stderr)
+        return 1
+    print(f"alerts: {len(alerts):,} from {min(a['datetime'] for a in alerts)} to "
+          f"{max(a['datetime'] for a in alerts)}")
+
+    mapping, how, unmatched = location_map(alerts)
+    total = sum(how.values())
+    print(f"\n(a) locations mapped: {total}; " + ", ".join(f"{k} {v} ({v / total:.0%})" for k, v in how.items()))
+    for name, permit, note in unmatched[:15]:
+        print(f"    unmatched: {name} ({permit}) — {note}")
+
+    events, offline = build_events(alerts, mapping, fetched)
+    print(f"\nevents built: {len(events):,}; offline periods: {len(offline):,}")
+
+    launch = datetime.strptime(read_json_meta()["launch_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    hub_starts = defaultdict(list)
+    for path in sorted((ROOT / "data" / "events").glob("*.csv")):
+        for ev in read_csv(path):
+            if ev["company_slug"] == "thames":
+                hub_starts[ev["overflow_key"]].append(to_utc(ev["start_utc"].rstrip("Z")))
+
+    # Split at launch first. Events from the overlap period are kept whole in events_overlap.csv: matching
+    # them against what we recorded live is the validation in check (b). Only the pre-launch history is
+    # de-duplicated against the events the Hub seeded us with at launch, so event ids stay unique.
+    pre, overlap, dropped = [], [], 0
+    for ev in events:
+        start = to_utc(ev["start_utc"].rstrip("Z"))
+        if start >= launch:
+            overlap.append(ev)
+            continue
+        if any(abs(start - h) <= NEAR_DUPLICATE for h in hub_starts.get(ev["overflow_key"], ())):
+            dropped += 1
+            continue
+        pre.append(ev)
+
+    out = ROOT / "data" / "thames_history"
+    write_csv(out / "events_pre_launch.csv", pre, EVENT_FIELDS, lambda r: r["event_id"])
+    write_csv(out / "events_overlap.csv", overlap, EVENT_FIELDS, lambda r: r["event_id"])
+    write_csv(out / "offline_pre_launch.csv", offline, OFFLINE_FIELDS,
+              lambda r: (r["overflow_key"], r["offline_start_utc"]))
+    print(f"(c) events dropped as duplicates of Hub rows: {dropped}")
+    print(f"    events_pre_launch.csv: {len(pre):,}; events_overlap.csv: {len(overlap):,}")
+
+    # (b) overlap validation against what we recorded live
+    matched = 0
+    for ev in overlap:
+        start = to_utc(ev["start_utc"].rstrip("Z"))
+        if any(abs(start - h) <= NEAR_DUPLICATE for h in hub_starts.get(ev["overflow_key"], ())):
+            matched += 1
+    rate = matched / len(overlap) if overlap else 0
+    print(f"(b) overlap validation: {matched} of {len(overlap)} Thames events since launch match a discharge "
+          f"we recorded from the Hub within 15 minutes ({rate:.0%}; pass >= 90%)")
+
+    # The overlap window is only as old as our own record, so it is a thin sample. The seeded events are a
+    # much larger independent check: at launch the Hub gave us the latest pre-launch discharge for every
+    # Thames overflow, and each one should appear in this history.
+    api_starts = defaultdict(list)
+    for ev in events:
+        api_starts[ev["overflow_key"]].append(to_utc(ev["start_utc"].rstrip("Z")))
+    seeded = [(key, start) for key, starts in hub_starts.items() for start in starts if start < launch]
+    seeded_matched = sum(1 for key, start in seeded
+                         if any(abs(start - a) <= NEAR_DUPLICATE for a in api_starts.get(key, ())))
+    seeded_rate = seeded_matched / len(seeded) if seeded else 0
+    print(f"    seeded-event validation: {seeded_matched} of {len(seeded)} pre-launch Thames discharges the Hub "
+          f"gave us at launch appear in this history ({seeded_rate:.0%})")
+
+    hub_ids = {ev["event_id"] for path in sorted((ROOT / "data" / "events").glob("*.csv")) for ev in read_csv(path)}
+    clash = hub_ids & {e["event_id"] for e in pre}
+    print(f"(d) event_id collisions with data/events: {len(clash)}")
+
+    months = Counter(e["start_utc"][:7] for e in pre)
+    print("(e) pre-launch events by month:")
+    for month in sorted(months):
+        print(f"    {month}: {months[month]}")
+
+    ok = (how["unmatched"] / total <= 0.10) and not clash \
+        and (rate >= 0.90 if len(overlap) >= 20 else seeded_rate >= 0.90)
+    print("PASS" if ok else "FAIL — GATE 3.3")
+    return 0 if ok else 1
+
+
+def read_json_meta():
+    import json
+    with open(ROOT / "data" / "meta.json", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def probe(args):
     print(f"base {BASE}; paging {PAGE} at a time, {PACE_SECONDS:.0f} s apart")
 
@@ -250,11 +463,14 @@ def main():
     q.add_argument("--to", dest="end", default=datetime.now(timezone.utc).date().isoformat())
     q.add_argument("--start-offset", type=int, default=0, help="resume paging from this offset")
     q.add_argument("--checkpoint-every", type=int, default=10, help="write the file every N pages")
+    sub.add_parser("events", help="turn the raw alerts into events mapped to Hub overflows")
     q.add_argument("--full", action="store_true",
                    help="walk the whole archive back to --from instead of stopping once caught up")
     args = ap.parse_args()
     try:
-        return probe(args) if args.command == "probe" else pull(args)
+        if args.command == "probe":
+            return probe(args)
+        return events_command(args) if args.command == "events" else pull(args)
     except ThamesError as e:
         print(f"network error: {e}", file=sys.stderr)
         return 2

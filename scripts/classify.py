@@ -156,6 +156,11 @@ def main():
     overflows = {r["overflow_key"]: r for r in read_csv(data / "overflows.csv")}
     gauges = read_csv(data / "rain" / "gauges.csv")
     events = [r for p in sorted((data / "events").glob("*.csv")) for r in read_csv(p)]
+    # Phase 3: Thames Water's own history back to April 2022, already de-duplicated against the events the
+    # Hub seeded at launch. events_overlap.csv is validation only and is never classified.
+    history = data / "thames_history" / "events_pre_launch.csv"
+    if history.exists():
+        events += read_csv(history)
     if not overflows or not gauges:
         print("overflows.csv or rain/gauges.csv is missing or empty", file=sys.stderr)
         return 1

@@ -261,6 +261,9 @@ def build(out_dir, hero_only=False):
     overflows = {r["overflow_key"]: r for r in read_csv(data / "overflows.csv")}
     rows = read_csv(data / "classification" / "all_events_classified.csv")
     events = {r["event_id"]: r for p in sorted((data / "events").glob("*.csv")) for r in read_csv(p)}
+    history = data / "thames_history" / "events_pre_launch.csv"   # phase 3: Thames' own record before launch
+    if history.exists():
+        events.update({r["event_id"]: r for r in read_csv(history)})
     gauges = read_csv(data / "rain" / "gauges.csv")
     gauge_by_id = {g["gauge_id"]: g for g in gauges}
     rain = {}
