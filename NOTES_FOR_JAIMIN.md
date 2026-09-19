@@ -14,43 +14,41 @@
 
 ## Draft email to United Utilities (for Jaimin to send)
 
-Subject: Storm overflow data feed: 5 records where the latest event ends before it starts
+*Re-checked 19 September 2026 at 00:34 UTC: still five records, but the set changes over time — UUP00604 has dropped out since yesterday and UUP00603 has appeared, so this is an ongoing pattern rather than five one-off rows. If you send it later, re-run the check below and update the list.*
+
+Subject: Storm overflow data feed: five records where the discharge ends before it starts
 
 Hello,
 
-I use the storm overflow activity data that United Utilities publishes through the National Storm Overflow Hub (Stream), ArcGIS item 8225548a267f4a408c36a91b6e0f5a1c, "United_Utilities_Storm_Overflow_Activity" feature service.
+I hope you can help with a small data question.
 
-In that feed, five overflows currently have a LatestEventEnd that is earlier than their LatestEventStart, while their Status is 0 (Stop). Times below are UTC, converted from the feed's epoch-millisecond values (checked on 17 September 2026 at 02:08 UTC):
+I follow the storm overflow activity data that United Utilities publishes through the National Storm Overflow Hub on Stream (streamwaterdata.co.uk), specifically your "United Utilities Storm Overflow Activity" feature service, ArcGIS item 8225548a267f4a408c36a91b6e0f5a1c.
 
-1. UUP00604 (The Lune Estuary, via Mill Race culvert): LatestEventStart 12 Sep 2026 07:10:00 (1789197000000); LatestEventEnd 10 Sep 2026 09:19:00 (1789031940000); StatusStart 10 Sep 2026 09:19:00.
-2. UUP00667 (Manchester Ship Canal): LatestEventStart 29 Jul 2025 16:21:00 (1753806060000); LatestEventEnd 29 Jul 2025 13:06:00 (1753794360000); StatusStart 18 Aug 2025 19:32:00.
-3. UUP01453 (River Goyt): LatestEventStart 4 Apr 2025 11:08:00 (1743764880000); LatestEventEnd 27 Jan 2025 03:00:00 (1737946800000); StatusStart 4 Apr 2025 13:02:00.
-4. UUP01489 (Arrowe Brook): LatestEventStart 3 Sep 2026 22:22:00 (1788474120000); LatestEventEnd 29 Aug 2026 22:40:00 (1788043200000); StatusStart 15 Sep 2026 05:12:00.
-5. UUP02258 (TRIB TROUT BECK): LatestEventStart 15 Sep 2026 21:20:00 (1789507200000); LatestEventEnd 15 Sep 2026 06:02:00 (1789452120000); StatusStart 15 Sep 2026 22:36:00.
+Five overflows in that feed currently show a LatestEventEnd that falls before their LatestEventStart, while their Status is 0 (Stop). Times below are UTC, converted from the feed's epoch-millisecond values and checked on 19 September 2026 at 00:34 UTC:
 
-Could you tell me:
-- whether LatestEventStart or LatestEventEnd is the correct value for each of these, and when each latest event actually ended; and
-- whether this is a known issue with the feed, and whether it will be corrected.
+1. UUP00603 (River Lune Estuary): starts 18 September 2026 at 14:38, ends 12 September 2026 at 10:03.
+2. UUP00667 (Manchester Ship Canal): starts 29 July 2025 at 16:21, ends 29 July 2025 at 13:06.
+3. UUP01453 (River Goyt): starts 4 April 2025 at 11:08, ends 27 January 2025 at 03:00.
+4. UUP01489 (Arrowe Brook): starts 3 September 2026 at 22:22, ends 29 August 2026 at 22:40.
+5. UUP02258 (Trib Trout Beck): starts 15 September 2026 at 21:20, ends 15 September 2026 at 06:02.
 
-Until I hear back, I am recording the start times as published and leaving the end times blank for these five.
+It looks like an ongoing pattern rather than a handful of old records: the overflows involved change from day to day, and one of the five above appeared only in the last twenty-four hours.
 
-Many thanks,
+Two questions, if you have a moment:
+
+- For these overflows, which timestamp is the reliable one, and when did each discharge actually end?
+- Is this a known issue with how the feed is generated, and is a fix expected?
+
+In the meantime I record the start times exactly as you publish them and leave the end times blank for these five, rather than show a negative duration.
+
+Thank you for making this data available in the first place — it is genuinely useful, and this is a small blemish on an otherwise clear feed.
+
+With best wishes,
 Jaimin Shah
-- 2026-09-17: Step 1.7 — rainfall pipeline. The Hydrology API lists 995 rainfall stations; all 995 have a 15-minute measure and coordinates (EA status: 971 Active, 19 Closed, 5 Suspended), so gauges.csv has 995 rows. **Observed lag** (run at 11:52 UTC on 17 Sep): 782 gauges already had a complete day for yesterday (16 Sep) and 777 of 995 gauges had all 96 readings for 14 Sep. That is about half a day behind, not the ~2 days the spec saw on 15 Sep; the 72-hour pending period in §5.3 still covers it comfortably.
-- 2026-09-17: 196 of the 995 gauges returned no readings at all for 2–16 Sep (172 marked Active plus the 19 Closed and 5 Suspended); e.g. Garrigill Noonstones Hill's latest reading is 18 Aug 2026. They stay in gauges.csv but will simply never be chosen for an event, because §5.3 picks the nearest gauge with enough readings.
-- 2026-09-17: The 02:30 UTC reading on 15 Sep 2026 is missing from almost every gauge (690 gauges have 95 readings that day; checked live, the slot is absent from the API, not dropped by us). 95 readings is still a complete day (≥ 88), but any event whose 48-hour window includes 15 Sep can have at most 191 of 192 readings, so it becomes final only by the 14-day rule in §5.3.
-- 2026-09-17: The Hydrology API refuses some requests with 403 Forbidden under load, and serves the same URL normally moments later. The first run (5 requests/second, 5 in parallel, no retry on 403) lost 301 of 995 gauges; `rain.py` now retries 403/429 three times with backoff like a 5xx, and the second run fetched 993 of 995 (the 2 failures succeeded when fetched on their own). Gauges that still fail keep their previous rows and are listed in the run log.
-- 2026-09-17: Daily rain files and gauges.csv keep a row's previous `fetched_utc` when nothing else in the row changed (same reasoning as the collector's quiet snapshot: otherwise every daily run would rewrite all fifteen files just to change timestamps). Gauge-days with no readings at all get no row.
-- 2026-09-17: Hydrology API dateTime confirmed UTC on 2026-09-15 (BST day). Step 1.8: 8 gauges with 9.3–38.2 mm that day, matched to the real-time API by stationReference; at offset 0 every gauge agreed on 96 of 96 fifteen-minute readings (|difference| 0.0 mm), at +1 h they disagreed by 10.2–34.6 mm. For the Method page.
-- 2026-09-17: Step 1.9 — classifier. `classified_utc` keeps its previous value when nothing else in an event's classification row changed (same reasoning as the collector's quiet snapshot; otherwise the hourly classify run would rewrite every non-final row every hour). It moves whenever the verdict or any evidence field changes.
-- 2026-09-17: First classification: 61 of the 114 dry day spills lasted 5 minutes or less (median 5 min; 7 lasted over 2 hours). The EA definition has no minimum duration, so the rule counts them all; noting it because very short events may be a point worth considering for the site's wording or a future rule version.
-- 2026-09-17: Jaimin asked (GATE 2) that the site state each dry day spill's length as precisely as possible. Event pages show "Length", and every event list shows "Lasted …", computed from the published start and end times to the second (e.g. "4 min 32 s", "8 s", "3 h 16 min"); events without a valid end say "No end time published yet". (Not in §8's lists; added at Jaimin's request.)
-- 2026-09-17: RESOLVED (GATE 3, Jaimin): dry day flag sub-lines reframed around the missing readings instead of "Provisional": `Complete rain data (192 of 192 readings).`; `Rain data 191 of 192 readings (awaiting 1 reading).` while the reading may still arrive (a late reading with rain could change the verdict); `Rain data 191 of 192 readings (final; 1 reading never published).` once final by the 14-day rule. Plural "readings" when more than one. 01_SPEC.md §5.3 and §5.6 updated.
-- 2026-09-17: GATE 3 — Jaimin reviewed the eight screenshots: "The site looks good. Really like it." No design changes requested.
-- 2026-09-17: Step 1.11 — because launch was today (17 Sep) and "last 30 days" ends yesterday, every period count on the site is 0 until tomorrow's build; "this year" covers 17 Sep only. The 114 dry day spills found in the seeded events are still listed (latest list, company pages, event pages), labelled as events recorded when the site began.
-- 2026-09-17: The footer's "Last poll" comes from the poll workflow's latest successful run via the GitHub API (a quiet poll writes no data). The deploy workflow (step 1.15a) must pass `GITHUB_TOKEN` to `build_site.py` for this; without it the footer falls back to "Discharge data last changed". Rain and classification footer times are when that data last changed.
-- 2026-09-17: Two small additions to the file layout: `templates/_macros.html` (the league table, verdict badge, event list and pager shared by several pages) and per-company CSVs generated at build time into `site/data/classification/companies/{slug}.csv`, which §8.2's "link to CSV filtered by company" needs. Site size is 17 MB.
-- 2026-09-17: Step 1.12 — hero visual: 3,550 of 14,199 overflows (every 4th by overflow_key), 170 KB. ST Connect's one placeholder record has grid-reference-like numbers in its latitude/longitude fields (152685.0389, 488325.6038 — not valid WGS84), so it is left off the map; it was already unclassifiable ("no gauge within 10 km"). The SVG is regenerated on every build so the highlighted dashes stay current; the committed copy is the latest local build.
+
+*To re-check before sending, run:*
+`python - <<'EOF'` … see `scripts/sources_resolved.json`; the query is the United Utilities layer with `where=LatestEventEnd < LatestEventStart`.
+
 - 2026-09-17: Netlify credits remaining before alias deploy #1 (step 1.15a): 285 of 300 (2026-09-17, read by Jaimin just before the deploy; unchanged since the start-of-build reading).
 - 2026-09-17: Step 1.15a — Netlify CLI major pinned: `netlify-cli@27` (27.8.0 current). `actions/setup-node@v7` (latest major on 17 Sep 2026 is v7.0.0, not the v5 in the spec; §9.3 says to verify). Differences from the plan's reference `deploy-netlify.yml`, none changing its logic: `permissions` adds `actions: read` and the build step gets `GITHUB_TOKEN`, so the footer's "Last poll" can read the poll workflow's latest run; the deploy message is set once and also passed to `deploy_guard.py --record --message`, because the CLI's JSON output does not contain it and the log needs it.
 - 2026-09-17: Netlify credits after alias deploy #1 (step 1.15b, read by Jaimin at ~13:50 UTC): 285. Jaimin first thought it might have dropped by 0.1, then confirmed it had not moved at all.
