@@ -4,6 +4,10 @@
     thames_history.py probe [--pages N]   confirm the API contract, the earliest date and the
                                           timezone of `datetime`, by comparing Start alerts with the
                                           discharges we recorded live from the National Storm Overflow Hub
+    thames_history.py pull --from DATE --to DATE
+                                          page back through /alerts into data/thames_history/alerts_raw.csv.gz
+                                          (columns as returned plus fetched_utc, de-duplicated, sorted);
+                                          re-running only adds rows
 
 The API needs no credentials (verified 19 Sep 2026); 01_SPEC.md §2.6's cloudhub host is dead.
 Requests too close together return HTTP 429 or an empty `items` list, so they are paced and retried:
@@ -12,6 +16,9 @@ an empty list is never treated as "no data".
 Exit codes: 0 ok, 1 inconclusive, 2 network error.
 """
 import argparse
+import csv
+import gzip
+import io
 import sys
 import time
 from collections import Counter, defaultdict
@@ -69,6 +76,75 @@ def page_alerts(pages):
         if len(batch) < PAGE:
             break
     return items, summary
+
+
+RAW_PATH = ROOT / "data" / "thames_history" / "alerts_raw.csv.gz"
+RAW_FIELDS = ["datetime", "locationName", "permitNumber", "locationGridRef", "x", "y",
+              "receivingWaterCourse", "alertType", "fetched_utc"]
+
+
+def read_raw(path):
+    if not path.exists():
+        return []
+    with gzip.open(path, "rt", encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def write_raw(path, rows):
+    """Deterministic gzip CSV (mtime fixed), sorted by datetime then location."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    rows = sorted(rows, key=lambda r: (r["datetime"], r["locationName"], r["alertType"], r["permitNumber"]))
+    with open(tmp, "wb") as raw, gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=9, mtime=0) as gz:
+        with io.TextIOWrapper(gz, encoding="utf-8", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=RAW_FIELDS, lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(rows)
+    tmp.replace(path)
+
+
+def identity(row):
+    """Everything the API returned, so an exact duplicate is dropped but a real repeat alert is kept."""
+    return tuple(str(row.get(k, "")) for k in RAW_FIELDS if k != "fetched_utc")
+
+
+def pull(args):
+    from swt.timeutil import now_iso
+
+    now = now_iso()
+    existing = read_raw(RAW_PATH)
+    seen = {identity(r): r for r in existing}
+    print(f"existing rows: {len(existing)}; pulling {args.start} .. {args.end}")
+
+    added, page = 0, 0
+    while True:
+        payload = get("alerts", {"limit": PAGE, "offset": page * PAGE})
+        batch = payload["items"]
+        stamps = [x["datetime"] for x in batch]
+        fresh = 0
+        for item in batch:
+            if not (args.start <= item["datetime"][:10] <= args.end):
+                continue
+            row = {k: str(item.get(k, "")) for k in RAW_FIELDS if k != "fetched_utc"}
+            row["fetched_utc"] = now
+            key = identity(row)
+            if key not in seen:
+                seen[key] = row
+                fresh += 1
+        added += fresh
+        print(f"    offset {page * PAGE:6}: {len(batch):5} records {min(stamps)} .. {max(stamps)}; new {fresh}")
+        page += 1
+        if len(batch) < PAGE or min(stamps)[:10] < args.start:
+            break
+
+    rows = list(seen.values())
+    write_raw(RAW_PATH, rows)
+    size = RAW_PATH.stat().st_size
+    print(f"rows now {len(rows)} (added {added}); {RAW_PATH.relative_to(ROOT)} {size / 1024 / 1024:.2f} MB")
+    if size > 20 * 1024 * 1024:
+        print("file is larger than 20 MB — stop and report (plan step 3.2)")
+        return 1
+    return 0
 
 
 def probe(args):
@@ -156,9 +232,12 @@ def main():
     sub = ap.add_subparsers(dest="command", required=True)
     p = sub.add_parser("probe", help="confirm the API contract and the timezone of datetime")
     p.add_argument("--pages", type=int, default=3, help="how many pages of alerts to read (1000 each)")
+    q = sub.add_parser("pull", help="page back through /alerts into data/thames_history/alerts_raw.csv.gz")
+    q.add_argument("--from", dest="start", default="2022-04-01")
+    q.add_argument("--to", dest="end", default=datetime.now(timezone.utc).date().isoformat())
     args = ap.parse_args()
     try:
-        return probe(args)
+        return probe(args) if args.command == "probe" else pull(args)
     except ThamesError as e:
         print(f"network error: {e}", file=sys.stderr)
         return 2
