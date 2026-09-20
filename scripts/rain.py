@@ -204,7 +204,13 @@ def main():
         today = datetime.now(timezone.utc).date()
         first_day = today - timedelta(days=args.days)
     span = (today - first_day).days
-    day_list = [(first_day + timedelta(days=i)).isoformat() for i in range(span)]
+    # Never ask for a day that has not happened: a historic --range ending on the first of next month would
+    # otherwise write header-only files for the rest of this month.
+    last_day = datetime.now(timezone.utc).date()
+    day_list = [d.isoformat() for d in (first_day + timedelta(days=i) for i in range(span)) if d <= last_day]
+    if not day_list:
+        print("nothing to fetch: the whole range is in the future", file=sys.stderr)
+        return 1
     days = set(day_list)
 
     with ThreadPoolExecutor(max_workers=MAX_REQUESTS_PER_SECOND) as pool:

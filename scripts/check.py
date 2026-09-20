@@ -957,7 +957,126 @@ def read_json_file(path):
         return json.load(f)
 
 
-STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14, "2.3": step_2_3, "2.4": step_2_4}
+
+# ---------------------------------------------------------------- step 1.16
+
+def step_1_16(args):
+    """The 48-hour soak (02_PHASE1_BUILD_PLAN.md step 1.16).
+
+    Counts poll runs, the polls inside them, failures, what the collector added and how verdicts settled.
+    Since 17 Sep 2026 one started poll run performs six polls ten minutes apart (01_SPEC.md §9.3), so the
+    plan's "expect >= 250 runs in 48 h" is reported as polls, with the run count beside it.
+    """
+    import json
+    import subprocess
+
+    hours = args.hours
+    now = datetime.now(timezone.utc)
+    since = now - timedelta(hours=hours)
+
+    r = subprocess.run(["gh", "run", "list", "--workflow", "poll", "--limit", "300", "--json",
+                        "status,conclusion,createdAt"], capture_output=True, text=True, cwd=str(ROOT))
+    if r.returncode != 0:
+        raise NetworkError(f"gh run list failed: {r.stderr.strip()[:200]}")
+    runs = [x for x in json.loads(r.stdout or "[]")
+            if datetime.strptime(x["createdAt"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) >= since]
+    failed = [x for x in runs if x["conclusion"] == "failure"]
+    cancelled = [x for x in runs if x["conclusion"] == "cancelled"]
+
+    # every poll leaves a commit "poll: <ISO>", which is the only record of the polls inside a run
+    g = subprocess.run(["git", "log", f"--since={since.strftime('%Y-%m-%dT%H:%M:%SZ')}",
+                        "--grep=^poll: ", "--pretty=%s"], capture_output=True, text=True, cwd=str(ROOT))
+    stamps = sorted(line[len("poll: "):].strip() for line in g.stdout.splitlines() if line.startswith("poll: "))
+    polls = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) for t in stamps]
+    gaps = [(b - a).total_seconds() / 60 for a, b in zip(polls, polls[1:])]
+    worst = sorted(zip(gaps, stamps[1:]), reverse=True)[:3]
+
+    print(f"(a) poll runs in the last {hours} h: {len(runs)}; failures: {len(failed)}; "
+          f"cancelled (expected under the concurrency rule, not failures): {len(cancelled)}")
+    print(f"(b) polls that committed in that window: {len(polls)}"
+          + (f"; longest gaps: " + ", ".join(f"{m:.0f} min before {t}" for m, t in worst) if worst else ""))
+
+    rows = read_csv(ROOT / "data" / "classification" / "all_events_classified.csv")
+    meta = read_json_file(ROOT / "data" / "meta.json")
+    launch = datetime.strptime(meta["launch_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    added = [r_ for r_ in rows if r_["start_utc"] >= meta["launch_utc"]]
+    print(f"(c) events with a start after launch ({meta['launch_utc']}): {len(added)}")
+
+    settled_cutoff = now - timedelta(days=3)
+    old = [r_ for r_ in rows
+           if datetime.strptime(r_["window_end_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+           < settled_cutoff]
+    still_pending = [r_ for r_ in old if r_["verdict"] == "pending_rain_data"]
+    share = 100.0 * (len(old) - len(still_pending)) / len(old) if old else 0.0
+    print(f"(d) events whose window ended more than 3 days ago: {len(old)}; still pending_rain_data: "
+          f"{len(still_pending)} ({share:.2f}% have moved on)")
+
+    changes = read_csv(ROOT / "data" / "classification" / "verdict_changes.csv")
+    recent = [c for c in changes if c["changed_utc"] >= since.strftime("%Y-%m-%dT%H:%M:%SZ")]
+    print(f"(e) verdict_changes.csv: {len(changes)} rows, {len(recent)} in the last {hours} h")
+
+    complete = ""
+    for back in range(0, 10):          # walk back from today, not through whatever filenames exist
+        day = (now.date() - timedelta(days=back)).isoformat()
+        path = ROOT / "data" / "rain" / "daily" / f"{day}.csv"
+        if path.exists() and sum(1 for row in read_csv(path) if int(row["n_readings"]) >= 88) > 100:
+            complete = day
+            break
+    lag = (now.date() - date.fromisoformat(complete)).days if complete else None
+    print(f"(f) latest rain day with a usable gauge count: {complete or 'none'}; "
+          f"Hydrology lag: {lag} days behind {now.date().isoformat()}")
+
+    ok = len(failed) <= 3 and len(polls) >= 250 * (hours / 48)
+    print("PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
+
+# ---------------------------------------------------------------- step 3.4
+
+def step_3_4(args):
+    """Historic rainfall back-fill (04_PHASE3_THAMES_BACKTEST_PLAN.md step 3.4).
+
+    Every day from 2022-03-31 to the day before launch must have a daily file, and the per-year share of
+    gauge-days with n_readings >= 88 is reported (older data is usually more complete, not less).
+    """
+    data = ROOT / "data"
+    meta = read_json_file(data / "meta.json")
+    launch_day = date.fromisoformat(meta["launch_utc"][:10])
+    start = date(2022, 3, 31)
+    have = {p.name[:10] for p in (data / "rain" / "daily").glob("*.csv")}
+    missing, day = [], start
+    while day < launch_day:
+        if day.isoformat() not in have:
+            missing.append(day.isoformat())
+        day += timedelta(days=1)
+    total_days = (launch_day - start).days
+    print(f"(a) days from {start} to {launch_day - timedelta(days=1)}: {total_days}; "
+          f"files present: {total_days - len(missing)}; missing: {len(missing)} {missing[:10]}")
+
+    by_year = {}
+    for path in sorted((data / "rain" / "daily").glob("*.csv")):
+        year = path.name[:4]
+        complete = total = 0
+        for row in read_csv(path):
+            total += 1
+            complete += int(row["n_readings"]) >= 88
+        y = by_year.setdefault(year, [0, 0, 0])
+        y[0] += complete
+        y[1] += total
+        y[2] += 1
+    print("(b) gauge-days with n_readings >= 88, by year:")
+    for year in sorted(by_year):
+        complete, total, files = by_year[year]
+        share = 100.0 * complete / total if total else 0.0
+        print(f"    {year}: {complete:>9,} of {total:>9,} gauge-days ({share:5.2f}%) across {files:3} daily files")
+    gauges = read_csv(data / "rain" / "gauges.csv")
+    print(f"(c) gauge list used for history: the current gauges.csv, {len(gauges)} gauges; a gauge opened "
+          f"after a given date simply has no rows before it")
+    print("PASS" if not missing else "FAIL")
+    return 0 if not missing else 1
+
+STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14,
+         "1.16": step_1_16, "2.3": step_2_3, "2.4": step_2_4, "3.4": step_3_4}
 
 
 def main():
@@ -965,6 +1084,7 @@ def main():
     ap.add_argument("--step", choices=sorted(STEPS))
     ap.add_argument("--acceptance", choices=["phase1"])
     ap.add_argument("--grid", help="step 2.3: the .npz written by scripts/radar.py day --save-grid")
+    ap.add_argument("--hours", type=int, default=48, help="step 1.16: the soak window (default 48)")
     args = ap.parse_args()
     if not args.step and not args.acceptance:
         ap.error("give --step or --acceptance")
