@@ -34,7 +34,9 @@ jobs:
   rain-backfill:
     if: ${{ inputs.job == 'rain-backfill' }}
     # One lane per month, so three months can back-fill at once (spec 2.2, amended 20 Sep 2026).
-    concurrency: {group: rain-backfill-${{ github.event.inputs.month }}, cancel-in-progress: false}
+    concurrency:
+      group: rain-backfill-${{ github.event.inputs.month }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
