@@ -166,6 +166,9 @@ blockquote { margin: 0 0 16px; padding-left: 16px; border-left: 1px solid var(--
 .prose ul { padding-left: 20px; max-width: 72ch; }
 .prose li { margin-bottom: 8px; }
 .sources li { margin-bottom: 20px; }
+/* the three gauges of a triangulated window, inside a definition list */
+.plain { list-style: none; margin: 4px 0 0; padding: 0; }
+.plain li { margin-bottom: 2px; }
 
 /* footer */
 .footer { border-top: 1px solid var(--rule); padding: 32px 0 48px; margin-top: 96px; font-size: 14px; color: var(--muted); }

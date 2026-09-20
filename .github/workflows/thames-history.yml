@@ -21,7 +21,7 @@ jobs:
         with: {python-version: "3.12", cache: pip}
       - run: pip install -r requirements.txt
       # The Thames open data API needs no credentials (verified 19 Sep 2026); the cloudhub host and the
-      # client_id/client_secret headers in 01_SPEC.md §2.6 are gone.
+      # The credential headers 01_SPEC.md §2.6 described are gone; the API is open.
       - run: python scripts/thames_history.py pull --from 2022-04-01
       - name: commit if changed
         run: |

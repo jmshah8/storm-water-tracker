@@ -28,6 +28,7 @@ from swt.timeutil import now_iso  # noqa: E402
 COPIED = ["event_id", "overflow_key", "company_slug", "start_utc", "end_utc", "duration_min", "source"]
 FIELDS = COPIED + [
     "day_utc", "window_start_utc", "window_end_utc", "gauge_id", "gauge_label", "gauge_distance_km",
+    "gauge_method", "triangulated_gauges",
     "rain_day_mm", "rain_prev24_mm", "rain_window_total_mm", "rain_window_max15_mm",
     "n_readings_present", "n_readings_expected", "n_gauges_skipped_stuck", "verdict", "verdict_basis",
     "rule_version", "classified_utc",
@@ -42,6 +43,9 @@ STUCK_MIN_COMPLETE_DAYS = 5        # as much history as we hold early on; the te
 STUCK_NEIGHBOUR_KM = 20.0
 STUCK_EVIDENCE_MM = 1.0
 STUCK_MIN_NEIGHBOURS = 2           # two independent gauges, so one faulty gauge or one local shower is not enough
+# dry-day-v3: how far out the three gauges of GN066's triangulation may sit when nothing is within 10 km.
+# The same 20 km the stuck-gauge test already uses, so the rule carries one distance, not two.
+TRIANGULATE_KM = 20.0
 
 
 class StuckGauges:
@@ -176,12 +180,15 @@ def main():
     candidates_cache = {}
 
     def candidates(overflow_key):
+        """(gauges within 10 km, gauges within the triangulation radius), both nearest first."""
         if overflow_key not in candidates_cache:
             o = overflows.get(overflow_key)
             if not o or not o["latitude"] or not o["longitude"]:
-                candidates_cache[overflow_key] = []
+                candidates_cache[overflow_key] = ([], [])
             else:
-                candidates_cache[overflow_key] = nearest_gauges(float(o["latitude"]), float(o["longitude"]), gauges)
+                lat, lon = float(o["latitude"]), float(o["longitude"])
+                far = nearest_gauges(lat, lon, gauges, max_km=TRIANGULATE_KM)
+                candidates_cache[overflow_key] = ([g for g in far if g["distance_km"] <= 10.0], far)
         return candidates_cache[overflow_key]
 
     radar = RadarDays(data / "radar" / "daily")
@@ -206,8 +213,9 @@ def main():
         radar_mm = (float(radar_window["radar_3x3_max_total_mm"])
                     if radar_window["radar_status"] == "complete" and radar_window["radar_3x3_max_total_mm"]
                     else None)
-        result = classify_event(ev["start_utc"], candidates(ev["overflow_key"]), rain_lookup, now, RULE_VERSION,
-                                gauge_unusable=stuck.checker(radar_mm))
+        near, far = candidates(ev["overflow_key"])
+        result = classify_event(ev["start_utc"], near, rain_lookup, now, RULE_VERSION,
+                                gauge_unusable=stuck.checker(radar_mm), far_candidates=far)
         row = {k: ev[k] for k in COPIED}
         row.update(result)
         row.update(radar_window)

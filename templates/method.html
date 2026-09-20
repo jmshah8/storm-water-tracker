@@ -69,6 +69,7 @@
 
   <h2>Rule changelog</h2>
   <ul>
+    <li><strong>dry-day-v3</strong> (20 Sep 2026): where no rain gauge lies within 10 km of an overflow, the three closest gauges within 20 km are now triangulated instead of the discharge being left without a verdict. This follows the only published regulatory instruction on the point, Natural Resources Wales guidance note GN066: &ldquo;Use rain gauge data that is the most representative for the SO. Where there is no nearby rain gauge, the three closest gauges can be triangulated.&rdquo; The three window totals are combined by inverse distance, so the nearest of them counts for most. An overflow that does have a gauge within 10 km still uses that gauge alone. The window, the 0.25 mm threshold and the completeness bar are unchanged.</li>
     <li><strong>dry-day-v2</strong> (18 Sep 2026): gauges that have stopped reporting rain are skipped when choosing which gauge to use, as described above. The window, the 0.25 mm threshold and everything else are unchanged. Every event was re-classified under this version; 12 flags that had rested on such gauges were withdrawn.</li>
     <li><strong>dry-day-v1</strong> ({{ launch_date }}): first version: nearest gauge within 10 km with at least 176 of 192 readings, flag when the 48-hour window total is 0.25 mm or less. Any change to the window, threshold or gauge selection gets a new version, a new entry here, and a full re-classification.</li>
   </ul>

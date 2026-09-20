@@ -162,7 +162,9 @@ Columns: `date` (UTC), `gauge_id`, `total_mm` (sum of 15-min values), `max15_mm`
 | `event_id`, `overflow_key`, `company_slug`, `start_utc`, `end_utc`, `duration_min`, `source` | copied |
 | `day_utc` | UTC calendar date of `start_utc` |
 | `window_start_utc`, `window_end_utc` | `day_utc − 1 day 00:00Z` to `day_utc + 1 day 00:00Z` (48 h) |
-| `gauge_id`, `gauge_label`, `gauge_distance_km` | chosen gauge (§5.3); empty if none |
+| `gauge_id`, `gauge_label`, `gauge_distance_km` | chosen gauge (§5.3); empty if none. When `gauge_method` is `triangulated_3` these name the nearest of the three |
+| `gauge_method` | `nearest` (one gauge within 10 km) or `triangulated_3` (GN066 triangulation, `dry-day-v3`); empty when no verdict |
+| `triangulated_gauges` | the three gauges triangulated, `label (id) D km T mm` separated by `\|`; empty for `nearest` |
 | `rain_day_mm` | total on `day_utc` |
 | `rain_prev24_mm` | total on `day_utc − 1` |
 | `rain_window_total_mm` | sum of the two |
@@ -214,8 +216,10 @@ Also `data/classification/verdict_changes.csv` (key: `event_id`,`changed_utc`): 
 Why total, not max-15-min: the sentence is ambiguous between "no single reading above 0.25 mm" and "no more than 0.25 mm of rain". Requiring the *total* to be ≤ 0.25 mm is the stricter reading — it flags fewer events — so it minimises false accusations. Both numbers are stored so the alternative reading can be recomputed. `verdict_basis = total` records which was used.
 
 5.3 **Gauge selection and verdict states.** Candidates = gauges in `gauges.csv` within **10.0 km** (haversine, WGS84) of the overflow, ordered by distance. **A candidate that has stopped reporting rain is skipped first (`dry-day-v2`, 18 Sep 2026, agreed with Jaimin): a gauge counts as stuck for a day when, over the 30 days ending that day, it has at least 5 complete days (`n_readings ≥ 88`) and recorded 0.00 mm on every one of them, and either at least two gauges within 20.0 km recorded more than 1 mm on one of those days, or complete radar recorded more than 1 mm over the overflow in the window. The count of skipped gauges is stored in `n_gauges_skipped_stuck`.** Then choose the nearest remaining candidate whose window has `n_readings_present ≥ 176` (≥ 91.7% of 192); if it exists, verdict is `dry_day` or `not_dry` by §5.2.
+**When no candidate lies within 10.0 km, the three closest usable gauges within 20.0 km are triangulated instead (`dry-day-v3`, 20 Sep 2026, Jaimin's decision).** This implements Natural Resources Wales GN066 v1.0 (26 Oct 2023), test 1 "Dry day discharges": "Use rain gauge data that is the most representative for the SO. Where there is no nearby rain gauge, the three closest gauges can be triangulated." Usable means the same two tests as above — not stuck, and `n_readings ≥ 176` in the window. The window totals of the three are combined by inverse-distance weighting, `w = 1 / max(distance_km, 0.1)`, each component rounded to 0.001 mm; `rain_window_max15_mm` is the largest quarter-hour any of the three recorded (a maximum is not an average of maxima) and `n_readings_present` is the smallest of the three. `gauge_method` is `triangulated_3`, `triangulated_gauges` lists all three, and `gauge_id`/`gauge_label`/`gauge_distance_km` name the nearest of them. **The 20.0 km radius is the same one the stuck-gauge test already uses, so the rule carries one distance and not two; GN066 states no distance.** Triangulation is never used when a gauge does lie within 10 km — GN066 offers it only "where there is no nearby rain gauge" — and it is not used when fewer than three usable gauges are within 20.0 km.
+
 Otherwise, in this order:
-- no candidate within 10 km → `no_gauge_within_10km` (final);
+- no candidate within 10 km and no triangulation available → `no_gauge_within_10km` (final);
 - `now_utc < window_end_utc + 72 h` → `pending_rain_data` (the Hydrology API lags ~2 days; rain may still arrive). This is decided by **time**, never by whether a daily file exists;
 - else → `insufficient_readings` (final unless data later appears; re-checked every run).
 

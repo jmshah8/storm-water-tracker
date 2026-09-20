@@ -51,7 +51,9 @@
     <li><strong>event_id</strong>, <strong>overflow_key</strong>, <strong>company_slug</strong>, <strong>start_utc</strong>, <strong>end_utc</strong>, <strong>duration_min</strong>, <strong>source</strong>: copied from the events files.</li>
     <li><strong>day_utc</strong>: the UTC date the discharge started.</li>
     <li><strong>window_start_utc</strong>, <strong>window_end_utc</strong>: 00:00 UTC on the day before, to 00:00 UTC on the day after (48 hours).</li>
-    <li><strong>gauge_id</strong>, <strong>gauge_label</strong>, <strong>gauge_distance_km</strong>: the gauge used; empty if none.</li>
+    <li><strong>gauge_id</strong>, <strong>gauge_label</strong>, <strong>gauge_distance_km</strong>: the gauge used; empty if none. Where three gauges were triangulated, these describe the nearest of the three.</li>
+    <li><strong>gauge_method</strong>: <code>nearest</code> when one gauge within 10 km was used, <code>triangulated_3</code> when the three closest gauges within 20 km were triangulated because none was within 10 km.</li>
+    <li><strong>triangulated_gauges</strong>: for <code>triangulated_3</code>, the three gauges with their distances and window totals, separated by <code>|</code>; empty otherwise.</li>
     <li><strong>rain_day_mm</strong>: rain on day_utc. <strong>rain_prev24_mm</strong>: rain on the day before. <strong>rain_window_total_mm</strong>: the two added. <strong>rain_window_max15_mm</strong>: the largest single 15-minute reading in the window.</li>
     <li><strong>n_readings_present</strong>, <strong>n_readings_expected</strong>: 15-minute readings found, of 192.</li>
     <li><strong>n_gauges_skipped_stuck</strong>: how many nearer gauges were skipped because they had stopped reporting rain (see the <a href="{{ root }}method.html">Method</a>).</li>

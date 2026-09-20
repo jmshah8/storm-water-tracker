@@ -28,8 +28,14 @@
       <dl class="fields">
         <dt>Window</dt><dd>{{ ev.window_start_utc|dt }} to {{ ev.window_end_utc|dt }} (48 hours: the day the discharge started and the day before)</dd>
         {% if ev.gauge_id %}
+        {% if ev.gauge_method == 'triangulated_3' %}
+        <dt>Gauges used</dt><dd>No rain gauge lies within 10 km of this overflow, so the three closest gauges were triangulated, weighted by distance, as the regulator's guidance allows:
+          <ul class="plain">{% for g in ev.triangulated_gauges.split('|') %}<li>{{ g }}</li>{% endfor %}</ul></dd>
+        <dt>Nearest of the three</dt><dd><span data-value="{{ ev.gauge_distance_km }}">{{ ev.gauge_distance_km }}</span> km away</dd>
+        {% else %}
         <dt>Gauge used</dt><dd>{{ ev.gauge_label }} <span class="muted">({{ ev.gauge_id }})</span></dd>
         <dt>Distance</dt><dd><span data-value="{{ ev.gauge_distance_km }}">{{ ev.gauge_distance_km }}</span> km</dd>
+        {% endif %}
         <dt>Rain on {{ ev.day_utc|d }}</dt><dd><span data-value="{{ ev.rain_day_mm }}">{{ ev.rain_day_mm }}</span> mm</dd>
         <dt>Rain on {{ prev_day|d }}</dt><dd><span data-value="{{ ev.rain_prev24_mm }}">{{ ev.rain_prev24_mm }}</span> mm</dd>
         <dt>Window total</dt><dd><strong data-value="{{ ev.rain_window_total_mm }}">{{ ev.rain_window_total_mm }} mm</strong></dd>
@@ -40,9 +46,9 @@
         {% endif %}
         {% if quality %}<dt>Quality of readings</dt><dd>{{ quality.n_unchecked }} unchecked · {{ quality.n_good }} good · {{ quality.n_other_quality }} other</dd>{% endif %}
         {% else %}
-        <dt>Gauge used</dt><dd>None yet: no gauge within 10 km has at least 176 of the 192 readings for this window.</dd>
+        <dt>Gauge used</dt><dd>None yet: no gauge within 10 km has at least 176 of the 192 readings for this window, and there are not three usable gauges within 20 km to triangulate.</dd>
         {% endif %}
-        <dt>Rule version</dt><dd>{{ ev.rule_version }} (verdict based on the window total)</dd>
+        <dt>Rule version</dt><dd>{{ ev.rule_version }} (verdict based on the window total{% if ev.gauge_method == 'triangulated_3' %}, triangulated from three gauges{% endif %})</dd>
         <dt>Classified</dt><dd>{{ ev.classified_utc|dt }}{% if ev.is_final == 'true' %} · final{% else %} · may change as rain data arrives{% endif %}</dd>
       </dl>
     </div>

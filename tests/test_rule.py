@@ -1,4 +1,4 @@
-"""Tests for swt/rule.py, dry-day-v2 (01_SPEC.md §5.2–5.3)."""
+"""Tests for swt/rule.py, dry-day-v3 (01_SPEC.md §5.2–5.3)."""
 import sys
 from pathlib import Path
 
@@ -138,9 +138,71 @@ def test_all_gauges_stuck_leaves_the_event_unclassified():
     assert late["n_gauges_skipped_stuck"] == "1"
 
 
-def test_rule_version_is_v2():
+def test_rule_version_is_v3():
     r = classify_event(START, [NEAR], rain(both_days("near", ("0", "0", 96), ("0", "0", 96))), NOW_EARLY)
-    assert r["rule_version"] == "dry-day-v2"
+    assert r["rule_version"] == "dry-day-v3"
+
+
+# dry-day-v3: GN066's "where there is no nearby rain gauge, the three closest gauges can be triangulated".
+
+THREE_FAR = [{"gauge_id": "g1", "label": "One", "distance_km": 12.0},
+             {"gauge_id": "g2", "label": "Two", "distance_km": 15.0},
+             {"gauge_id": "g3", "label": "Three", "distance_km": 18.0}]
+
+
+def three_gauge_rain(totals):
+    table = {}
+    for g, total in zip(THREE_FAR, totals):
+        table.update(both_days(g["gauge_id"], ("0", "0", 96), (total, total, 96)))
+    return rain(table)
+
+
+def test_nearby_gauge_is_used_alone_even_when_far_gauges_exist():
+    # An overflow with a gauge inside 10 km never triangulates: GN066 triangulates only in its absence.
+    r = classify_event(START, [NEAR], rain(both_days("near", ("0.1", "0.1", 96), ("0.1", "0.1", 96))),
+                       NOW_EARLY, far_candidates=THREE_FAR)
+    assert r["gauge_method"] == "nearest"
+    assert r["gauge_id"] == "near"
+    assert r["triangulated_gauges"] == ""
+    assert r["verdict"] == "dry_day"
+
+
+def test_no_nearby_gauge_triangulates_three_closest():
+    r = classify_event(START, [], three_gauge_rain(("3", "0", "0")), NOW_EARLY, far_candidates=THREE_FAR)
+    assert r["gauge_method"] == "triangulated_3"
+    assert r["gauge_id"] == "g1"          # the nearest of the three is the one the evidence line links
+    assert r["gauge_distance_km"] == "12.00"
+    assert r["triangulated_gauges"].count("|") == 2
+    # 3 mm at 12 km, 0 mm at 15 km and 0 mm at 18 km, weighted by 1/distance
+    assert r["rain_window_total_mm"] == "1.216"   # 3 x (1/12) / (1/12 + 1/15 + 1/18)
+    assert r["verdict"] == "not_dry"
+    assert r["n_readings_present"] == "192"
+
+
+def test_triangulation_needs_three_usable_gauges():
+    table = {}
+    table.update(both_days("g1", ("0", "0", 96), ("0", "0", 96)))
+    table.update(both_days("g2", ("0", "0", 96), ("0", "0", 96)))
+    r = classify_event(START, [], rain(table), NOW_EARLY, far_candidates=THREE_FAR)
+    assert r["verdict"] == "no_gauge_within_10km"
+    assert r["gauge_method"] == ""
+
+
+def test_triangulation_skips_a_stuck_gauge():
+    four = THREE_FAR + [{"gauge_id": "g4", "label": "Four", "distance_km": 19.0}]
+    table = {}
+    for g in four:
+        table.update(both_days(g["gauge_id"], ("0", "0", 96), ("0", "0", 96)))
+    r = classify_event(START, [], rain(table), NOW_EARLY, far_candidates=four,
+                       gauge_unusable=lambda gid, day: "stuck" if gid == "g1" else None)
+    assert r["gauge_method"] == "triangulated_3"
+    assert r["gauge_id"] == "g2"
+    assert "Four" in r["triangulated_gauges"]
+
+
+def test_no_gauge_at_all_still_has_no_verdict():
+    r = classify_event(START, [], rain({}), NOW_EARLY, far_candidates=[])
+    assert r["verdict"] == "no_gauge_within_10km"
 
 
 def test_geo():

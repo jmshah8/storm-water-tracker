@@ -169,10 +169,23 @@ def step_1_8(args):
     return 1
 
 
+
+def classified_event_rows(data=None):
+    """Every event the classifier reads: data/events/*.csv plus the Thames pre-launch history (step 3.3).
+
+    events_overlap.csv is validation only and is never classified, so it is not included here either.
+    """
+    data = data or (ROOT / "data")
+    rows = [r for p in sorted((data / "events").glob("*.csv")) for r in read_csv(p)]
+    history = data / "thames_history" / "events_pre_launch.csv"
+    if history.exists():
+        rows += read_csv(history)
+    return rows
+
 # ---------------------------------------------------------------- step 1.9
 
-DRY_DAY_REQUIRED = ["gauge_id", "gauge_distance_km", "rain_day_mm", "rain_prev24_mm", "rain_window_total_mm",
-                    "rain_window_max15_mm", "n_readings_present"]
+DRY_DAY_REQUIRED = ["gauge_id", "gauge_distance_km", "gauge_method", "rain_day_mm", "rain_prev24_mm",
+                    "rain_window_total_mm", "rain_window_max15_mm", "n_readings_present"]
 
 
 def step_1_9(args):
@@ -182,7 +195,7 @@ def step_1_9(args):
 
     ok = True
     cls_dir = ROOT / "data" / "classification"
-    events = [r["event_id"] for p in sorted((ROOT / "data" / "events").glob("*.csv")) for r in read_csv(p)]
+    events = [r["event_id"] for r in classified_event_rows()]
     rows = read_csv(cls_dir / "all_events_classified.csv")
     by_id = collections.Counter(r["event_id"] for r in rows)
 
@@ -639,10 +652,6 @@ def step_2_4(args):
 
 # ---------------------------------------------------------------- acceptance: phase 1
 
-def _rows_by(path_glob):
-    return [r for p in sorted(path_glob) for r in read_csv(p)]
-
-
 def acceptance_phase1(args):
     """05_CHECKS_AND_ACCEPTANCE.md Phase 1: one row per item, printed as a table."""
     import collections
@@ -666,7 +675,7 @@ def acceptance_phase1(args):
     meta = read_json_file(data / "meta.json")
     launch_day = date.fromisoformat(meta["launch_utc"][:10])
     overflows = {o["overflow_key"]: o for o in read_csv(data / "overflows.csv")}
-    events = _rows_by((data / "events").glob("*.csv"))
+    events = classified_event_rows(data)
     rows = read_csv(data / "classification" / "all_events_classified.csv")
     gauges = {g["gauge_id"]: g for g in read_csv(data / "rain" / "gauges.csv")}
     now = datetime.now(timezone.utc)
@@ -726,8 +735,15 @@ def acceptance_phase1(args):
             bad_final.append(r["event_id"])
     add("A5", "0 violations", f"dry_day with < 176 readings: {len(bad_readings)}; is_final violations: {len(bad_final)}",
         "PASS" if not bad_readings and not bad_final else "FAIL")
-    far = [r["event_id"] for r in dry if float(r["gauge_distance_km"]) > 10.0]
-    add("A6", "0 violations", f"dry_day with gauge > 10.0 km: {len(far)}", "PASS" if not far else "FAIL")
+    # dry-day-v3: a nearest-gauge flag must still be inside 10 km; a triangulated one (GN066, used only when
+    # no gauge is within 10 km) must be inside the 20 km triangulation radius and name three gauges.
+    far = [r["event_id"] for r in dry
+           if float(r["gauge_distance_km"]) > (20.0 if r.get("gauge_method") == "triangulated_3" else 10.0)]
+    bad_tri = [r["event_id"] for r in dry
+               if r.get("gauge_method") == "triangulated_3" and r.get("triangulated_gauges", "").count("|") != 2]
+    add("A6", "0 violations",
+        f"dry_day with gauge beyond its radius: {len(far)}; triangulated without three gauges: {len(bad_tri)}",
+        "PASS" if not far and not bad_tri else "FAIL")
     ids = [r["event_id"] for r in rows]
     add("A7", "counts equal", f"events {len(events)}, classified rows {len(rows)}, unique {len(set(ids))}",
         "PASS" if len(events) == len(rows) == len(set(ids)) else "FAIL")
