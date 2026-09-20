@@ -229,7 +229,7 @@ Jaimin will have:
   Also: number of Netlify deploys in `deploy_log.json` this month by kind, and the credits remaining Jaimin reads now (write it in NOTES) — expect about 300 − 15 × (production deploys by every site on the team this month) − a few credits of requests.
   **CHECK 1.16:** the numbers above; no workflow is disabled (`gh workflow list` shows all `active`); `grep -c "\[OPEN\]" NOTES_FOR_JAIMIN.md` is 0; `prod` deploys this month ≤ 8.
 
-- [ ] **1.17 Phase 1 acceptance.** Run the full protocol in `05_CHECKS_AND_ACCEPTANCE.md` §Phase 1. **GATE 4**: report the acceptance table. When Jaimin says "accepted", set Phase 1 status to `done (YYYY-MM-DD)` in this pack's `README.md` and in the repo README.
+- [x] **1.17 Phase 1 acceptance.** Run the full protocol in `05_CHECKS_AND_ACCEPTANCE.md` §Phase 1. **GATE 4**: report the acceptance table. When Jaimin says "accepted", set Phase 1 status to `done (YYYY-MM-DD)` in this pack's `README.md` and in the repo README.
 
 ---
 
