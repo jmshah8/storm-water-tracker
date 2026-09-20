@@ -685,17 +685,30 @@ def acceptance_phase1(args):
     add("A1", "pass", r.stdout.strip().splitlines()[-1] if r.stdout else r.stderr[-200:],
         "PASS" if r.returncode == 0 else "FAIL")
 
+    def gauge_window_total(gauge_id, row):
+        """The window total for one gauge, fetched fresh from the Hydrology API."""
+        gauge = gauges.get(gauge_id)
+        url = f"{HYDROLOGY}/measures/{gauge['measure_id']}/readings"
+        items = get_json(url, {"mineq-date": row["window_start_utc"][:10], "max-date": row["window_end_utc"][:10],
+                               "_limit": 2000})["items"]
+        return sum((Decimal(str(i["value"])) for i in items
+                    if i.get("value") not in (None, "") and float(i["value"]) >= 0), Decimal(0))
+
     def recompute(sample, want_dry):
         bad = []
         for row in sample:
-            gauge = gauges.get(row["gauge_id"])
-            url = f"{HYDROLOGY}/measures/{gauge['measure_id']}/readings"
-            items = get_json(url, {"mineq-date": row["window_start_utc"][:10], "max-date": row["window_end_utc"][:10],
-                                   "_limit": 2000})["items"]
-            values = {i["dateTime"]: Decimal(str(i["value"])) for i in items
-                      if i.get("value") not in (None, "") and float(i["value"]) >= 0}
-            total = sum(values.values(), Decimal(0))
-            within = abs(total - Decimal(row["rain_window_total_mm"])) <= Decimal("0.01")
+            if row.get("gauge_method") == "triangulated_3":
+                # dry-day-v3: recompute all three gauges and re-apply the inverse-distance weights, or the
+                # comparison is a single gauge against a triangulated figure.
+                parts = re.findall(r"\(([^)]+)\) ([0-9.]+) km", row["triangulated_gauges"])
+                weights = [Decimal(1) / max(Decimal(km), Decimal("0.1")) for _, km in parts]
+                totals = [gauge_window_total(gid, row) for gid, _ in parts]
+                total = (sum(w * t for w, t in zip(weights, totals)) / sum(weights)).quantize(Decimal("0.001"))
+                tolerance = Decimal("0.01")   # same bar as a single gauge; the weights add at most 0.002
+            else:
+                total = gauge_window_total(row["gauge_id"], row)
+                tolerance = Decimal("0.01")
+            within = abs(total - Decimal(row["rain_window_total_mm"])) <= tolerance
             side = total <= Decimal("0.25") if want_dry else total > Decimal("0.25")
             if not (within and side):
                 bad.append(f"{row['event_id']}: recomputed {total} vs stored {row['rain_window_total_mm']}")
