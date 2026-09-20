@@ -33,7 +33,8 @@ jobs:
           for i in 1 2 3 4 5; do git pull --rebase && git push && break || sleep 10; done
   rain-backfill:
     if: ${{ inputs.job == 'rain-backfill' }}
-    concurrency: {group: rain-backfill, cancel-in-progress: false}
+    # One lane per month, so three months can back-fill at once (spec 2.2, amended 20 Sep 2026).
+    concurrency: {group: rain-backfill-${{ inputs.month }}, cancel-in-progress: false}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:

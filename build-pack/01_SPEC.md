@@ -84,7 +84,7 @@ Verified examples (15 Sep 2026):
 - **Measures.** Use the 15-minute total: measure `@id` ends with `-rainfall-t-900-mm-qualified` (period 900 s, unit mm, valueType total). Listing: `GET https://environment.data.gov.uk/hydrology/id/measures?observedProperty=rainfall&periodName=15min&_limit=5000`.
 - **Readings.** `GET https://environment.data.gov.uk/hydrology/id/measures/{measure_notation}/readings?mineq-date=YYYY-MM-DD&max-date=YYYY-MM-DD&_limit=100000` (or `.csv` / `_format=csv`). Items: `dateTime` (ISO, **no timezone marker**), `value` (mm), `quality` (e.g. `Unchecked`, `Good`). `mineq-date` is inclusive, `max-date` exclusive.
 - **Timezone assumption.** The Hydrology API's `dateTime` carries no zone. The EA's real-time API uses `Z` (UTC). **We treat Hydrology `dateTime` as UTC.** Step 1.8 in the build plan verifies this by comparing one gauge-day across the two APIs before any classification runs.
-- **Polite use.** No published rate limit. Pace requests at ≤ 5 per second; one call per measure per day covering a rolling 4-day window.
+- **Polite use.** No published rate limit. Pace requests at ≤ 5 per second per process; one call per measure per day covering a rolling 4-day window. **Amended 20 Sep 2026 (Jaimin's decision):** the Phase 3 historic back-fill may run at most **three** months concurrently, each at ≤ 5 per second, so the aggregate against the Hydrology API is ≤ 15 per second and only while the back-fill is running. The live daily job stays at one process, ≤ 5 per second.
 
 ### 2.3 Rainfall — EA real-time flood-monitoring API (optional, not used in v1)
 
