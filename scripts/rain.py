@@ -168,6 +168,8 @@ def main():
     ap.add_argument("--data", default=str(ROOT / "data"))
     ap.add_argument("--refresh-gauges", action="store_true", help="rewrite gauges.csv from the stations endpoint")
     ap.add_argument("--days", type=int, default=15, help="number of UTC days before today to fetch (default 15)")
+    ap.add_argument("--range", nargs=2, metavar=("START", "END"),
+                    help="fetch a historic window instead: START inclusive, END exclusive (phase 3)")
     args = ap.parse_args()
 
     data = Path(args.data)
@@ -188,9 +190,21 @@ def main():
             print(f"{gauges_path} is missing or empty; run with --refresh-gauges", file=sys.stderr)
             return 1
 
-    today = datetime.now(timezone.utc).date()
-    first_day = today - timedelta(days=args.days)
-    day_list = [(first_day + timedelta(days=i)).isoformat() for i in range(args.days)]
+    if args.range:
+        try:
+            first_day = datetime.strptime(args.range[0], "%Y-%m-%d").date()
+            today = datetime.strptime(args.range[1], "%Y-%m-%d").date()   # exclusive, like max-date
+        except ValueError:
+            print("--range takes two YYYY-MM-DD dates", file=sys.stderr)
+            return 1
+        if today <= first_day:
+            print("--range END must be after START", file=sys.stderr)
+            return 1
+    else:
+        today = datetime.now(timezone.utc).date()
+        first_day = today - timedelta(days=args.days)
+    span = (today - first_day).days
+    day_list = [(first_day + timedelta(days=i)).isoformat() for i in range(span)]
     days = set(day_list)
 
     with ThreadPoolExecutor(max_workers=MAX_REQUESTS_PER_SECOND) as pool:

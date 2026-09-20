@@ -4,13 +4,14 @@ on:
     inputs:
       job: {type: choice, options: [pull-alerts, rain-backfill], default: pull-alerts}
       month: {description: "rain-backfill only: YYYY-MM", type: string}
-# Its own lane: it writes only data/thames_history, so it never races the collector, rainfall, radar or
-# classify jobs, and sharing the data-writers lane just meant GitHub cancelled it behind a long radar run.
-concurrency: {group: thames-history, cancel-in-progress: false}
+# One lane per job, not one per workflow: GitHub cancels a pending run when another queues in the same
+# group, which is how radar back-fill batches were silently dropped. A long rainfall back-fill must never
+# cancel a quick alerts pull, and neither must wait behind the collector, radar or classify.
 permissions: {contents: write}
 jobs:
   pull-alerts:
     if: ${{ inputs.job == 'pull-alerts' }}
+    concurrency: {group: thames-alerts, cancel-in-progress: false}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -32,6 +33,7 @@ jobs:
           for i in 1 2 3 4 5; do git pull --rebase && git push && break || sleep 10; done
   rain-backfill:
     if: ${{ inputs.job == 'rain-backfill' }}
+    concurrency: {group: rain-backfill, cancel-in-progress: false}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
