@@ -1092,8 +1092,130 @@ def step_3_4(args):
     print("PASS" if not missing else "FAIL")
     return 0 if not missing else 1
 
+
+# ---------------------------------------------------------------- step 3.5
+
+def step_3_5(args):
+    """The Thames back-test page (04_PHASE3_THAMES_BACKTEST_PLAN.md step 3.5).
+
+    Recomputes every number the page shows straight from the classification CSV and compares, then verifies
+    a sample of pre-launch flags live against the Hydrology API as CHECK 1.9 does.
+    """
+    import html5lib
+    import random
+    import re
+    from datetime import date as _date
+    from decimal import Decimal
+
+    data = ROOT / "data"
+    page = ROOT / "site" / "thames-backtest.html"
+    if not page.exists():
+        print(f"{page} is missing; run build_site.py first", file=sys.stderr)
+        return 1
+    tree = html5lib.HTMLParser(namespaceHTMLElements=False).parse(page.read_text(encoding="utf-8"))
+    shown = {}
+    for el in tree.iter():
+        metric = el.get("data-metric")
+        if metric and metric.startswith("bt-") and el.get("data-value") is not None:
+            shown[(metric, el.get("data-key") or "")] = el.get("data-value")
+
+    rows = [r for r in read_csv(data / "classification" / "all_events_classified.csv")
+            if r["company_slug"] == "thames"]
+    meta = read_json_file(data / "meta.json")
+    launch_day = _date.fromisoformat(meta["launch_utc"][:10])
+    n_overflows = sum(1 for o in read_csv(data / "overflows.csv") if o["company_slug"] == "thames")
+    radar_ok = {r["event_id"] for r in rows
+                if r["verdict"] == "dry_day" and r["radar_status"] == "complete" and r["radar_3x3_max_total_mm"]}
+    agrees = {r["event_id"] for r in rows
+              if r["event_id"] in radar_ok and float(r["radar_3x3_max_total_mm"]) <= 0.25}
+
+    def window(start, end, source=None):
+        return [r for r in rows if start <= r["start_utc"][:10] <= end and (source is None or r["source"] == source)]
+
+    expected = {}
+
+    def add_year(label, start, end, source=None):
+        in_p = window(start, end, source)
+        dry = [r for r in in_p if r["verdict"] == "dry_day"]
+        complete = [r for r in in_p if r["verdict"] in ("dry_day", "not_dry")]
+        checked = [r for r in dry if r["event_id"] in radar_ok]
+        expected[("bt-year-events", label)] = str(len(in_p))
+        expected[("bt-year-dry", label)] = str(len(dry))
+        expected[("bt-year-per100", label)] = f"{len(dry) * 100 / n_overflows:.1f}" if n_overflows else "0.0"
+        expected[("bt-year-complete", label)] = f"{len(complete) * 100 / len(in_p):.0f}" if in_p else ""
+        expected[("bt-year-radar", label)] = (
+            f"{sum(1 for r in checked if r['event_id'] in agrees) * 100 / len(checked):.0f}" if checked else "")
+
+    add_year("2022", "2022-04-01", "2022-12-31")
+    for y in range(2023, launch_day.year):
+        add_year(str(y), f"{y}-01-01", f"{y}-12-31")
+    add_year(f"{launch_day.year} before launch", f"{launch_day.year}-01-01",
+             (launch_day - timedelta(days=1)).isoformat(), "thames_api")
+    add_year(f"{launch_day.year} from launch", launch_day.isoformat(), _date.today().isoformat(), "hub")
+
+    month = _date(2022, 4, 1)
+    total_events = total_dry = 0
+    while month <= _date.today():
+        end = _date(month.year + (month.month // 12), month.month % 12 + 1, 1) - timedelta(days=1)
+        in_m = window(month.isoformat(), min(end, _date.today()).isoformat())
+        key = f"{month.year}-{month.month:02d}"
+        expected[("bt-month-events", key)] = str(len(in_m))
+        expected[("bt-month-dry", key)] = str(sum(1 for r in in_m if r["verdict"] == "dry_day"))
+        total_events += len(in_m)
+        total_dry += sum(1 for r in in_m if r["verdict"] == "dry_day")
+        month = _date(month.year + (month.month // 12), month.month % 12 + 1, 1)
+    expected[("bt-events", "")] = str(total_events)
+    expected[("bt-dry", "")] = str(total_dry)
+
+    missing = [k for k in expected if k not in shown]
+    extra = [k for k in shown if k not in expected]
+    bad = [(k, expected[k], shown[k]) for k in expected if k in shown and expected[k] != shown[k]]
+    print(f"(a) figures on the page: {len(shown)}; recomputed from the CSV: {len(expected)}; "
+          f"missing from the page: {len(missing)} {missing[:5]}; on the page but not recomputed: {len(extra)} {extra[:5]}")
+    print(f"(b) mismatches: {len(bad)}")
+    for k, want, got in bad[:10]:
+        print(f"    {k}: recomputed {want}, page shows {got}")
+
+    text = re.sub(r"<[^>]+>", " ", page.read_text(encoding="utf-8"))
+    required = ["8,576", "unverified figures", "event duration monitors were still being fitted",
+                "company's own alerts", "back-test of the method"]
+    absent = [q for q in required if q not in text]
+    print(f"(c) required cautions present: {len(required) - len(absent)} of {len(required)}; missing: {absent}")
+
+    pre = [r for r in rows if r["verdict"] == "dry_day" and r["source"] == "thames_api"]
+    sample = random.sample(pre, min(10, len(pre)))
+    gauges = {g["gauge_id"]: g for g in read_csv(data / "rain" / "gauges.csv")}
+    wrong = []
+    print(f"(d) independent recomputation for {len(sample)} pre-launch Thames dry_day events:")
+    for row in sample:
+        pairs = re.findall(r"\(([^)]+)\) ([0-9.]+) km", row["triangulated_gauges"])
+        triangulated = row["gauge_method"] == "triangulated_3"
+        ids = [m[0] for m in pairs] if triangulated else [row["gauge_id"]]
+        kms = [Decimal(m[1]) for m in pairs] if triangulated else [Decimal("1")]
+        totals = []
+        for gid in ids:
+            url = f"{HYDROLOGY}/measures/{gauges[gid]['measure_id']}/readings"
+            items = get_json(url, {"mineq-date": row["window_start_utc"][:10],
+                                   "max-date": row["window_end_utc"][:10], "_limit": 2000})["items"]
+            totals.append(sum((Decimal(str(i["value"])) for i in items
+                               if i.get("value") not in (None, "") and float(i["value"]) >= 0), Decimal(0)))
+        if triangulated:
+            weights = [Decimal(1) / max(km, Decimal("0.1")) for km in kms]
+            total = (sum(w * t for w, t in zip(weights, totals)) / sum(weights)).quantize(Decimal("0.001"))
+        else:
+            total = totals[0]
+        ok = abs(total - Decimal(row["rain_window_total_mm"])) <= Decimal("0.01") and total <= Decimal("0.25")
+        print(f"    {row['event_id']} start {row['start_utc']} {row['gauge_method']}: recomputed {total} mm vs "
+              f"stored {row['rain_window_total_mm']} mm; dry: {total <= Decimal('0.25')}")
+        if not ok:
+            wrong.append(row["event_id"])
+
+    ok = not (missing or bad or absent or wrong)
+    print("PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
 STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14,
-         "1.16": step_1_16, "2.3": step_2_3, "2.4": step_2_4, "3.4": step_3_4}
+         "1.16": step_1_16, "2.3": step_2_3, "2.4": step_2_4, "3.4": step_3_4, "3.5": step_3_5}
 
 
 def main():

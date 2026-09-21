@@ -163,6 +163,64 @@ def radar_frames(data):
     return frames
 
 
+def thames_backtest(rows, n_overflows, launch_day, today):
+    """The Thames Water back-test (04_PHASE3_THAMES_BACKTEST_PLAN.md step 3.5).
+
+    Every figure is computed from the same classification rows the rest of the site uses, under the same
+    rule: the API history is not treated differently from the Hub events, only labelled differently.
+    """
+    thames = [r for r in rows if r["company_slug"] == "thames"]
+
+    def block(label, start, end, source=None, note=""):
+        """One row of the per-year table: events whose start falls in [start, end], inclusive."""
+        in_p = [r for r in thames
+                if start.isoformat() <= r["start_utc"][:10] <= end.isoformat()
+                and (source is None or r["source"] == source)]
+        dry = [r for r in in_p if r["verdict"] == "dry_day"]
+        complete = [r for r in in_p if r["verdict"] in ("dry_day", "not_dry")]
+        checked = [r for r in dry if r["radar_label"]]
+        agrees = [r for r in checked if r["radar_label"] == "radar_agrees"]
+        return {"label": label, "note": note, "events": len(in_p), "dry": len(dry),
+                "per100": per_100(len(dry), n_overflows),
+                "complete_share": f"{len(complete) * 100 / len(in_p):.0f}" if in_p else "",
+                "radar_checked": len(checked), "radar_agrees": len(agrees),
+                "radar_share": f"{len(agrees) * 100 / len(checked):.0f}" if checked else ""}
+
+    years = [block("2022", date(2022, 4, 1), date(2022, 12, 31),
+                   note="from 1 April, when the company's own history begins")]
+    for y in range(2023, launch_day.year):
+        years.append(block(str(y), date(y, 1, 1), date(y, 12, 31)))
+    years.append(block(f"{launch_day.year} before launch", date(launch_day.year, 1, 1),
+                       launch_day - timedelta(days=1), source="thames_api",
+                       note="Thames Water's own alert stream"))
+    years.append(block(f"{launch_day.year} from launch", launch_day, today, source="hub",
+                       note="the National Storm Overflow Hub, collected by this site"))
+
+    monthly, m = [], date(2022, 4, 1)
+    while m <= today:
+        end = date(m.year + (m.month // 12), m.month % 12 + 1, 1) - timedelta(days=1)
+        in_m = [r for r in thames if m.isoformat() <= r["start_utc"][:10] <= min(end, today).isoformat()]
+        dry = sum(1 for r in in_m if r["verdict"] == "dry_day")
+        complete = sum(1 for r in in_m if r["verdict"] in ("dry_day", "not_dry"))
+        monthly.append({"key": f"{m.year}-{m.month:02d}", "label": f"{MONTHS[m.month - 1]} {m.year}",
+                        "events": len(in_m), "dry": dry,
+                        "complete_share": f"{complete * 100 / len(in_m):.0f}" if in_m else ""})
+        m = date(m.year + (m.month // 12), m.month % 12 + 1, 1)
+
+    # the one permitted chart: a bar per month, drawn as <rect>s in the template
+    tallest = max((x["dry"] for x in monthly), default=0)
+    bar_w, gap, height = 9, 3, 120
+    for i, x in enumerate(monthly):
+        x["x"] = i * (bar_w + gap)
+        x["h"] = round(height * x["dry"] / tallest, 1) if tallest else 0
+        x["y"] = round(height - x["h"], 1)
+    return {"years": years, "monthly": monthly, "tallest": tallest, "bar_w": bar_w,
+            "chart_w": len(monthly) * (bar_w + gap) - gap if monthly else 0, "chart_h": height,
+            "n_overflows": n_overflows,
+            "first_month": monthly[0]["label"] if monthly else "", "last_month": monthly[-1]["label"] if monthly else "",
+            "n_events": sum(x["events"] for x in monthly), "n_dry": sum(x["dry"] for x in monthly)}
+
+
 def per_100(dry, overflows):
     return f"{dry * 100 / overflows:.1f}" if overflows else "0.0"
 
@@ -418,6 +476,7 @@ def build(out_dir, hero_only=False):
         (csv_dir / f"{slug}.csv").write_text(header + "".join(body), encoding="utf-8")
         for path, chunk, n, total in pages(company_dry, COMPANY_SPILLS_PER_PAGE, f"companies/{slug}.html"):
             render("company.html", path, active="companies", slug=slug, name=name, overflows=overflow_counts[slug],
+                   backtest_from="2022" if slug == "thames" else "",
                    monthly=monthly, spills=chunk, page_no=n, n_pages=total, n_spills=len(company_dry),
                    page_name=lambda k, s=slug: page_name(f"companies/{s}.html", k))
 
@@ -448,6 +507,10 @@ def build(out_dir, hero_only=False):
                           f"?mineq-date={prev_day}&max-date={r['window_end_utc'][:10]}")]
         render("event.html", f"events/{r['slug']}.html", active="events", ev=r, o=o, quality=quality,
                reproduce=reproduce, prev_day=prev_day, event_detail=events.get(r["event_id"], {}))
+
+    backtest = thames_backtest(rows, overflow_counts["thames"], launch_day, today)
+    render("thames_backtest.html", "thames-backtest.html", active="companies", bt=backtest,
+           radar_cover=radar_coverage(frames))
 
     render("method.html", "method.html", active="method",
            n_no_coords=sum(1 for o in overflows.values() if not o["latitude"] or not o["longitude"]),

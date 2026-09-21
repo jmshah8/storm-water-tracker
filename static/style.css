@@ -166,6 +166,11 @@ blockquote { margin: 0 0 16px; padding-left: 16px; border-left: 1px solid var(--
 .prose ul { padding-left: 20px; max-width: 72ch; }
 .prose li { margin-bottom: 8px; }
 .sources li { margin-bottom: 20px; }
+/* the back-test's monthly bars: the one chart on the site, hand-built <rect>s, no library */
+.bars { display: block; margin: 16px 0 4px; overflow: visible; }
+.bars rect { fill: var(--flag-dim); }
+.bars rect:hover { fill: var(--flag); }
+
 /* the three gauges of a triangulated window, inside a definition list */
 .plain { list-style: none; margin: 4px 0 0; padding: 0; }
 .plain li { margin-bottom: 2px; }

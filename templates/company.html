@@ -7,7 +7,7 @@
   <div class="page-head">
     <span class="label">Company</span>
     <h1>{{ name }}</h1>
-    <p><span data-metric="company-overflows" data-value="{{ overflows }}">{{ overflows|thin }}</span> storm overflows tracked. <a href="{{ root }}data/classification/companies/{{ slug }}.csv" download>Download every classified event for {{ name }} (CSV)</a>.</p>
+    <p><span data-metric="company-overflows" data-value="{{ overflows }}">{{ overflows|thin }}</span> storm overflows tracked. <a href="{{ root }}data/classification/companies/{{ slug }}.csv" download>Download every classified event for {{ name }} (CSV)</a>.{% if backtest_from %} <a href="{{ root }}thames-backtest.html">Back-test to April {{ backtest_from }}</a>.{% endif %}</p>
   </div>
 
   {% if page_no == 1 %}

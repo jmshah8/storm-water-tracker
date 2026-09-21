@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Thames Water back-test{% endblock %}
+{% block description %}Thames Water's own discharge history since April 2022, run through the same dry day rule as the rest of this site, with the method's limits stated.{% endblock %}
+{% block main %}
+<div class="wrap">
+  <div class="page-head">
+    <span class="label">Back-test</span>
+    <h1>Thames Water since April 2022</h1>
+    <p>Thames Water publishes its own discharge alerts going back to 1 April 2022. This page runs that history through the <a href="{{ root }}method.html">same rule</a> as everything else on this site — no rainfall above 0.25 mm on the day a discharge started or the day before — and shows what comes out. <span data-metric="bt-events" data-value="{{ bt.n_events }}">{{ bt.n_events|thin }}</span> discharges, <span data-metric="bt-dry" data-value="{{ bt.n_dry }}">{{ bt.n_dry|thin }}</span> of them flagged as dry day spills, across {{ bt.n_overflows }} overflows.</p>
+  </div>
+
+  <section class="section" style="padding-top: 0">
+    <h2>Read this first</h2>
+    <p>This is a test of the <em>method</em>, not an audit of the company.</p>
+    <ul>
+      <li><strong>2022 barely counts.</strong> The history starts thin — a handful of alerts a month in 2022, thousands a month from 2023 — because event duration monitors were still being fitted. A 2022 figure describes the monitors that existed then, not the network.</li>
+      <li><strong>These are the company's own alerts</strong>, unaudited, exactly like the live feed the rest of this site uses. Nobody has checked them but the company.</li>
+      <li><strong>Most of this history has no second opinion.</strong> The Met Office keeps a rolling two-year radar archive, so radar exists only from {{ radar_cover.first|d }} onwards. For every discharge before that — which is most of 2022, 2023 and 2024 — the rain gauge is the only witness. The “radar agrees” column says how many flags could be checked at all, and a blank means none could.</li>
+      <li><strong>There is no official Thames-only figure to reconcile against.</strong> The only public numbers come from freedom of information requests reported by the Guardian, covering England and Wales: “In 2025, water companies in England and Wales reported 8,576 dry spill pollution discharges,” and 7,280 between January and May 2026. Water UK's response to those figures: “These are unverified figures, and it is too early to describe them as dry day spills.” So this page is a back-test of the method, not a reconciliation to an official number.</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>By year</h2>
+    <p class="period-note">Events counted by the UTC day they started. “Complete rain data” is the share of events that reached a dry day or not-dry verdict rather than waiting on readings. “Radar agrees” counts only flags where the Met Office radar archive covers the window.</p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Year</th>
+          <th scope="col" class="num">Events</th>
+          <th scope="col" class="num">Dry day spills</th>
+          <th scope="col" class="num">Dry day per 100 overflows</th>
+          <th scope="col" class="num">Complete rain data</th>
+          <th scope="col" class="num">Radar agrees</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for y in bt.years %}
+        <tr>
+          <th scope="row">{{ y.label }}{% if y.note %} <small class="muted">{{ y.note }}</small>{% endif %}</th>
+          <td class="num" data-metric="bt-year-events" data-key="{{ y.label }}" data-value="{{ y.events }}">{{ y.events|thin }}</td>
+          <td class="num" data-metric="bt-year-dry" data-key="{{ y.label }}" data-value="{{ y.dry }}">{{ y.dry|thin }}</td>
+          <td class="num" data-metric="bt-year-per100" data-key="{{ y.label }}" data-value="{{ y.per100 }}">{{ y.per100 }}</td>
+          <td class="num" data-metric="bt-year-complete" data-key="{{ y.label }}" data-value="{{ y.complete_share }}">{% if y.complete_share %}{{ y.complete_share }}%{% else %}—{% endif %}</td>
+          <td class="num" data-metric="bt-year-radar" data-key="{{ y.label }}" data-value="{{ y.radar_share }}">{% if y.radar_checked %}{{ y.radar_share }}% <small class="muted">of {{ y.radar_checked|thin }}</small>{% else %}no radar{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Dry day spills by month</h2>
+    <p class="period-note">One bar per month, {{ bt.first_month }} to {{ bt.last_month }}. The tallest bar is {{ bt.tallest|thin }} dry day spills. The rise through 2023 is mostly monitors being fitted, not the river getting worse.</p>
+    <svg class="bars" viewBox="0 0 {{ bt.chart_w }} {{ bt.chart_h }}" role="img" width="100%" height="160"
+         aria-label="Monthly dry day spills flagged for Thames Water, {{ bt.first_month }} to {{ bt.last_month }}. Tallest month {{ bt.tallest }}.">
+      {% for x in bt.monthly %}<rect x="{{ x.x }}" y="{{ x.y }}" width="{{ bt.bar_w }}" height="{{ x.h }}"><title>{{ x.label }}: {{ x.dry }} dry day spills of {{ x.events }} discharges</title></rect>
+      {% endfor %}
+    </svg>
+    <p class="muted">{{ bt.first_month }}<span style="float: right">{{ bt.last_month }}</span></p>
+  </section>
+
+  <section class="section">
+    <h2>Month by month</h2>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">Month</th>
+          <th scope="col" class="num">Events</th>
+          <th scope="col" class="num">Dry day spills</th>
+          <th scope="col" class="num">Complete rain data</th>
+        </tr>
+      </thead>
+      <tbody data-more>
+      {% for x in bt.monthly|reverse %}
+        <tr>
+          <th scope="row">{{ x.label }}</th>
+          <td class="num" data-metric="bt-month-events" data-key="{{ x.key }}" data-value="{{ x.events }}">{{ x.events|thin }}</td>
+          <td class="num" data-metric="bt-month-dry" data-key="{{ x.key }}" data-value="{{ x.dry }}">{{ x.dry|thin }}</td>
+          <td class="num">{% if x.complete_share %}{{ x.complete_share }}%{% else %}—{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Where these came from</h2>
+    <p>The alerts come from Thames Water's own open API, <code>api.thameswater.co.uk/opendata/v2/discharge</code>, which needs no key and returns every start and stop alert it holds. Each pair of alerts becomes one discharge. Every one of the 570 locations in that stream matched an overflow the National Storm Overflow Hub publishes, by the company's own identifier, so nothing here is joined by guesswork about coordinates. Discharges the Hub had already given us at launch were dropped rather than counted twice.</p>
+    <p>The rainfall is the same Environment Agency Hydrology API data used everywhere else on this site, fetched for every day back to 31 March 2022. <a href="{{ root }}data.html">Every figure here is in the downloadable CSVs</a>, and each flagged discharge has its own page with the gauge, the distance, the readings and the radar.</p>
+  </section>
+</div>
+{% endblock %}
