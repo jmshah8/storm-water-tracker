@@ -299,6 +299,12 @@ HERO_WIDTH, HERO_HEIGHT, HERO_PAD = 900, 1100, 20
 HERO_MAX_DASHES = 4500
 HERO_LABEL = ("Storm overflows in England drawn as dashes; highlighted dashes are dry day spills in the last 30 days")
 FAINT, FLAG = "#4a4a4f", "#d9b26a"  # --faint and --flag (01_SPEC.md §7.1); an <img> cannot read CSS variables
+# The unflagged overflows were drawn in --faint and read as almost invisible on a dark screen (Jaimin,
+# 20 Sep 2026). They are now --muted held back by fill-opacity, which lands between the two palette values
+# without introducing a twelfth colour, and each dash is a shade larger.
+DASH_FILL, DASH_OPACITY = "#8b8b90", "0.72"
+DASH_W, DASH_H = 3.4, 1.1
+FLAG_W, FLAG_H = 5.4, 1.3
 
 
 def valid_coords(o):
@@ -333,14 +339,16 @@ def write_hero(overflows, rows, today, launch_day, path):
     step = math.ceil(len(keys) / HERO_MAX_DASHES)
     sample = [k for k in keys[::step] if k not in set(flagged)]
     lines = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {HERO_WIDTH} {HERO_HEIGHT}" role="img" '
-             f'aria-label="{HERO_LABEL}">', f'<g fill="{FAINT}">']
+             f'aria-label="{HERO_LABEL}">', f'<g fill="{DASH_FILL}" fill-opacity="{DASH_OPACITY}">']
     for k in sample:
         x, y = project(*points[k])
-        lines.append(f'<rect x="{x - 1.5:.1f}" y="{y - 0.5:.1f}" width="3" height="1"/>')
+        lines.append(f'<rect x="{x - DASH_W / 2:.1f}" y="{y - DASH_H / 2:.1f}" '
+                     f'width="{DASH_W}" height="{DASH_H}"/>')
     lines += ["</g>", f'<g fill="{FLAG}">']
     for k in flagged:
         x, y = project(*points[k])
-        lines.append(f'<rect x="{x - 2.5:.1f}" y="{y - 0.5:.1f}" width="5" height="1"/>')
+        lines.append(f'<rect x="{x - FLAG_W / 2:.1f}" y="{y - FLAG_H / 2:.1f}" '
+                     f'width="{FLAG_W}" height="{FLAG_H}"/>')
     lines += ["</g>", "</svg>"]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return len(sample), len(flagged)
