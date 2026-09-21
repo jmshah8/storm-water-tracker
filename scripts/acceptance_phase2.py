@@ -25,8 +25,29 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from check import NetworkError, get_json, read_csv, read_json_file, site_checks, step_2_3  # noqa: E402,F401
-from swt.io import read_csv as _read_csv  # noqa: E402,F401  (same helper; check.py re-exports it)
+
+
+def _check_module():
+    """The one live copy of scripts/check.py.
+
+    When check.py itself is the script being run it is `__main__`, and a plain `import check` would load a
+    second copy whose NetworkError is a different class — so an exception raised here would sail straight
+    past check.py's own handler. Reuse the running module when that is what it is.
+    """
+    running = sys.modules.get("__main__")
+    if getattr(running, "__file__", "").endswith("check.py"):
+        return running
+    import check as fresh
+    return fresh
+
+
+_check = _check_module()
+NetworkError = _check.NetworkError
+get_json = _check.get_json
+read_csv = _check.read_csv
+read_json_file = _check.read_json_file
+site_checks = _check.site_checks
+step_2_3 = _check.step_2_3
 
 import radar as radar_cli  # noqa: E402  (scripts/radar.py: the bucket listing)
 
@@ -252,7 +273,9 @@ def acceptance_phase2(args):
         f"{len(other_mismatches)}", "PASS" if not radar_mismatches else "FAIL")
 
     print("Radar never changes a verdict")
-    work = Path(args.work) / f"acceptance_phase2_{now:%Y%m%dT%H%M%SZ}" if args.work \
+    # check.py --acceptance phase2 passes its own Namespace, which has no --work/--keep of its own
+    work_arg, keep = getattr(args, "work", None), getattr(args, "keep", False)
+    work = Path(work_arg) / f"acceptance_phase2_{now:%Y%m%dT%H%M%SZ}" if work_arg \
         else Path(tempfile.mkdtemp(prefix="swt-acceptance-phase2-"))
     work.mkdir(parents=True, exist_ok=True)
     try:
@@ -268,7 +291,7 @@ def acceptance_phase2(args):
             f"event ids only in one run: {len(only_a)}/{len(only_b)}; verdicts differing: {len(differing)} "
             f"{differing[:3]}", "PASS" if not differing and not only_a and not only_b else "FAIL")
     finally:
-        if not args.keep:
+        if not keep:
             shutil.rmtree(work, ignore_errors=True)
 
     print("Licensing and automation")
