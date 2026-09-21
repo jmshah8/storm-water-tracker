@@ -973,7 +973,7 @@ def read_json_file(path):
 
 # ---------------------------------------------------------------- step 1.16
 
-def step_1_16(args):
+def step_1_16(args):  # noqa: C901
     """The 48-hour soak (02_PHASE1_BUILD_PLAN.md step 1.16).
 
     Counts poll runs, the polls inside them, failures, what the collector added and how verdicts settled.
@@ -981,6 +981,7 @@ def step_1_16(args):
     plan's "expect >= 250 runs in 48 h" is reported as polls, with the run count beside it.
     """
     import json
+    import re
     import subprocess
 
     hours = args.hours
@@ -999,7 +1000,10 @@ def step_1_16(args):
     # every poll leaves a commit "poll: <ISO>", which is the only record of the polls inside a run
     g = subprocess.run(["git", "log", f"--since={since.strftime('%Y-%m-%dT%H:%M:%SZ')}",
                         "--grep=^poll: ", "--pretty=%s"], capture_output=True, text=True, cwd=str(ROOT))
-    stamps = sorted(line[len("poll: "):].strip() for line in g.stdout.splitlines() if line.startswith("poll: "))
+    # only "poll: <ISO timestamp>" counts; a human commit whose subject happens to start "poll: " does not
+    stamps = sorted(m.group(1) for m in
+                    (re.match(r"^poll: (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)$", line) for line in
+                     g.stdout.splitlines()) if m)
     polls = [datetime.strptime(t, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc) for t in stamps]
     gaps = [(b - a).total_seconds() / 60 for a, b in zip(polls, polls[1:])]
     worst = sorted(zip(gaps, stamps[1:]), reverse=True)[:3]
