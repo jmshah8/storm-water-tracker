@@ -9,5 +9,5 @@ To run locally: create a virtualenv with Python 3.12 (`python3.12 -m venv .venv 
 | Phase | What it delivers | Status |
 |---|---|---|
 | 1 | The site: collector, rainfall, dry-day classifier, static site, private Netlify deploy | **done (2026-09-20)** |
-| 2 | Met Office radar as a second opinion, back-filled to November 2024 | archive complete; acceptance (GATE 2.7) outstanding |
-| 3 | Thames Water's own history back to 1 April 2022, run through the same classifier | steps 3.1–3.4 done; back-test page next |
+| 2 | Met Office radar as a second opinion, back-filled to November 2024 | **done (2026-09-20)** |
+| 3 | Thames Water's own history back to 1 April 2022, run through the same classifier | **done (2026-09-20)** |

@@ -9,8 +9,8 @@ This folder is the **build pack**: everything Claude Code needs to build the sit
 | Phase | What it delivers | Plan file | Status |
 |---|---|---|---|
 | 1 | The general site: collector polling all ten companies' feeds every 10 minutes, daily rainfall from the EA Hydrology API, the dry-day classifier, the static site (Overview, Companies, Events, Method, Data, About), deployed to a private Netlify project on a credit budget | `02_PHASE1_BUILD_PLAN.md` | **done (2026-09-20)** — accepted by Jaimin at GATE 4 |
-| 2 | Met Office radar as a second opinion on rainfall for every overflow-day, back-filled to November 2024 | `03_PHASE2_RADAR_PLAN.md` | in progress — radar live in the classifier and on the site; back-fill finishing (2.6) |
-| 3 | Thames Water's own API history back to 1 April 2022, run through the same classifier as a back-test | `04_PHASE3_THAMES_BACKTEST_PLAN.md` | in progress — steps 3.1–3.4 done; back-test page (3.5) next |
+| 2 | Met Office radar as a second opinion on rainfall for every overflow-day, back-filled to November 2024 | `03_PHASE2_RADAR_PLAN.md` | **done (2026-09-20)** — accepted by Jaimin at GATE 2.7, acceptance 10/10 |
+| 3 | Thames Water's own API history back to 1 April 2022, run through the same classifier as a back-test | `04_PHASE3_THAMES_BACKTEST_PLAN.md` | **done (2026-09-20)** — accepted by Jaimin at GATE 3.6, acceptance 8/8 |
 
 Update the Status column (not started → in progress → done, with the date) as phases complete.
 

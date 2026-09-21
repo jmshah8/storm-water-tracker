@@ -80,7 +80,7 @@ Jaimin will have:
 
   > Note for the Method page (write it into `NOTES_FOR_JAIMIN.md` now): events with `start_utc` earlier than `launch_utc` are only "the most recent event per overflow at launch", not a complete record. The site must not show league tables or monthly counts for any period before `launch_utc`'s month, and must label that month "partial (from {launch date})".
 
-- [ ] **1.5 GATE 1.** Report: CHECK 1.2 and 1.4 numbers, anything odd in the feeds (companies with zero events, records without coordinates, duplicate `Id`s). Wait.
+- [x] **1.5 GATE 1.** (passed 17 Sep 2026; checkbox ticked 20 Sep) Report: CHECK 1.2 and 1.4 numbers, anything odd in the feeds (companies with zero events, records without coordinates, duplicate `Id`s). Wait.
 
 ---
 
@@ -142,7 +142,7 @@ Jaimin will have:
   Expect at this point: only events whose 48-hour window falls inside the 15 days of rain fetched can get a real verdict; the thousands of seeded events older than that will be `insufficient_readings` (their rain is fetched in Phase 3's historic back-fill) — say so in the report, it is expected. Also expect `is_final` to be false for almost everything at this stage.
   **CHECK 1.9:** (a) tests pass; (b) print verdict counts and `is_final` counts; every event has exactly one row and a verdict; (c) every `dry_day` row has non-empty `gauge_id, gauge_distance_km, rain_day_mm, rain_prev24_mm, rain_window_total_mm, rain_window_max15_mm, n_readings_present`; (d) **independent recomputation**: `scripts/check.py --step 1.9` picks up to 5 random `dry_day` events (if fewer than 5 exist yet, use all that exist and say so), re-fetches the two days of readings for their gauge directly from the Hydrology API, recomputes the window total, and asserts it matches `rain_window_total_mm` within 0.01 mm and is ≤ 0.25 — print the URLs and totals; (e) `verdict_changes.csv` exists with its header. Commit: `step 1.9: rule + classifier`.
 
-- [ ] **1.10 GATE 2.** Report verdict counts, the five recomputed events with their URLs, the timezone result, and the share of events still `pending_rain_data`. Wait.
+- [x] **1.10 GATE 2.** (passed 17 Sep 2026; checkbox ticked 20 Sep) Report verdict counts, the five recomputed events with their URLs, the timezone result, and the share of events still `pending_rain_data`. Wait.
 
 ---
 
