@@ -119,6 +119,26 @@ def slug_map(event_ids):
     return out
 
 
+def radar_coverage(frames):
+    """What the radar archive actually holds: first day, last day and the days missing in between.
+
+    The Met Office bucket keeps a rolling two years and has gaps of its own near its oldest edge, so the
+    Method page states the cover rather than implying it is complete.
+    """
+    from datetime import date as _date, timedelta as _timedelta
+
+    if not frames:
+        return {"first": "", "last": "", "missing": [], "n_days": 0}
+    days = sorted(frames)
+    first, last = _date.fromisoformat(days[0]), _date.fromisoformat(days[-1])
+    held, missing, day = set(days), [], first
+    while day <= last:
+        if day.isoformat() not in held:
+            missing.append(day.isoformat())
+        day += _timedelta(days=1)
+    return {"first": days[0], "last": days[-1], "missing": missing, "n_days": len(days)}
+
+
 def radar_label(row):
     """'radar_agrees' / 'radar_disagrees' for a dry day flag with complete radar; '' otherwise (03 plan §2.4).
 
@@ -431,7 +451,7 @@ def build(out_dir, hero_only=False):
 
     render("method.html", "method.html", active="method",
            n_no_coords=sum(1 for o in overflows.values() if not o["latitude"] or not o["longitude"]),
-           n_st_connect=overflow_counts["st-connect"])
+           n_st_connect=overflow_counts["st-connect"], radar_cover=radar_coverage(frames))
     data_files = sorted(p.relative_to(data).as_posix() for p in (data / "classification").glob("*.csv"))
     data_files += sorted(p.relative_to(data).as_posix() for p in (data / "events").glob("*.csv"))
     data_files += ["overflows.csv", "rain/gauges.csv"]
