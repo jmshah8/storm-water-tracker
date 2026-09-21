@@ -3,34 +3,32 @@ on:
   schedule:
     - cron: "*/10 * * * *"
   workflow_dispatch:
-concurrency: {group: poll, cancel-in-progress: false}   # its own lane: a run holds it for ~50 minutes
+concurrency: {group: poll, cancel-in-progress: false}   # its own lane; a run now takes a minute or two
 permissions: {contents: write}
 jobs:
   poll:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
         with: {fetch-depth: 1}
       - uses: actions/setup-python@v7
         with: {python-version: "3.12", cache: pip}
       - run: pip install -r requirements.txt
-      # GitHub starts scheduled runs far less often than every 10 minutes (it drops them under load), so one
-      # started run polls six times, ten minutes apart, and commits after each poll.
-      - name: poll every 10 minutes for an hour
+      # One poll per run (20 Sep 2026). cron-job.org POSTs a workflow_dispatch every ten minutes, so the run
+      # no longer has to cover for GitHub's scheduler; the six-polls-per-run loop it used to do would now make
+      # each trigger queue behind the previous run. The */10 schedule above stays as a fallback for the days
+      # GitHub does start it, and for whenever the external trigger is down.
+      - name: poll once
         run: |
           git config user.name "swt-bot"
           git config user.email "swt-bot@users.noreply.github.com"
-          for i in 1 2 3 4 5 6; do
-            echo "--- poll $i/6 at $(date -u +%FT%TZ)"
-            git pull --rebase --quiet || true
-            python scripts/collect.py
-            git add data
-            if git diff --cached --quiet; then
-              echo "no changes"
-            else
-              git commit -m "poll: $(date -u +%FT%TZ)"
-              for attempt in 1 2 3 4 5; do git pull --rebase && git push && break || sleep 10; done
-            fi
-            if [ "$i" != 6 ]; then sleep 600; fi
-          done
+          git pull --rebase --quiet || true
+          python scripts/collect.py
+          git add data
+          if git diff --cached --quiet; then
+            echo "no changes"
+          else
+            git commit -m "poll: $(date -u +%FT%TZ)"
+            for attempt in 1 2 3 4 5; do git pull --rebase && git push && break || sleep 10; done
+          fi
