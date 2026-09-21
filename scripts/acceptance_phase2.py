@@ -65,6 +65,36 @@ def radar_day_frames():
     return out
 
 
+def archive_coverage(now=None):
+    """Radar archive coverage (03_PHASE2_RADAR_PLAN.md CHECK 2.6, and acceptance item R4).
+
+    Every missing day is looked up in the Met Office bucket before it is judged: a day the bucket itself
+    holds no keys for is an upstream gap and is reported, not excused; anything else is a real gap and fails.
+    """
+    now = now or datetime.now(timezone.utc)
+    frames = radar_day_frames()
+    oldest = date.fromisoformat(min(frames)) if frames else None
+    yesterday = now.date() - timedelta(days=1)
+    expected_days, day = [], oldest
+    while day and day <= yesterday:
+        expected_days.append(day.isoformat())
+        day += timedelta(days=1)
+    missing = [d for d in expected_days if d not in frames]
+    upstream, real_gaps = [], []
+    for d in missing:
+        keys = bucket_keys(date.fromisoformat(d))
+        (upstream if not keys else real_gaps).append(f"{d} ({len(keys)} keys upstream)")
+    before_oldest = bucket_keys(oldest - timedelta(days=1)) if oldest else []
+    partial = sorted((d, n) for d, n in frames.items() if n < FRAMES_COMPLETE)
+    observed = (f"now {now:%Y-%m-%dT%H:%M:%SZ} (radar.yml samples the previous day at 07:30 UTC); "
+                f"{oldest} to {yesterday}: {len(expected_days)} UTC days, {len(frames)} daily files; "
+                f"missing {len(missing)}; upstream gaps (bucket holds zero keys) {upstream or 'none'}; "
+                f"unexplained gaps {real_gaps or 'none'}; the day before the oldest "
+                f"({oldest - timedelta(days=1)}) holds {len(before_oldest)} keys upstream; "
+                f"days with < {FRAMES_COMPLETE} frames: {len(partial)} {partial[:6]}")
+    return observed, ("PASS" if not real_gaps else "FAIL")
+
+
 def frozen_inputs(work):
     """A frozen snapshot of the classifier's inputs: hard links, so nothing is duplicated and nothing moves.
 
@@ -184,29 +214,8 @@ def acceptance_phase2(args):
             "scripts/radar.py day DATE --save-grid first", "FAIL")
 
     print("Archive coverage")
-    frames = radar_day_frames()
-    oldest = date.fromisoformat(min(frames)) if frames else None
-    yesterday = now.date() - timedelta(days=1)
-    expected_days = []
-    day = oldest
-    while day and day <= yesterday:
-        expected_days.append(day.isoformat())
-        day += timedelta(days=1)
-    missing = [d for d in expected_days if d not in frames]
-    upstream, real_gaps = [], []
-    for d in missing:
-        keys = bucket_keys(date.fromisoformat(d))
-        (upstream if not keys else real_gaps).append(f"{d} ({len(keys)} keys upstream)")
-    before_oldest = bucket_keys(oldest - timedelta(days=1)) if oldest else []
-    partial = sorted((d, n) for d, n in frames.items() if n < FRAMES_COMPLETE)
-    add("R4", "0 missing (gaps listed if any)",
-        f"now {now:%Y-%m-%dT%H:%M:%SZ} (radar.yml samples the previous day at 07:30 UTC); "
-        f"{oldest} to {yesterday}: {len(expected_days)} UTC days, {len(frames)} daily files; "
-        f"missing {len(missing)}; upstream gaps (bucket holds zero keys) {upstream or 'none'}; "
-        f"unexplained gaps {real_gaps or 'none'}; the day before the oldest "
-        f"({oldest - timedelta(days=1)}) holds {len(before_oldest)} keys upstream; "
-        f"days with < {FRAMES_COMPLETE} frames: {len(partial)} {partial[:6]}",
-        "PASS" if not real_gaps else "FAIL")
+    observed, status = archive_coverage(now)
+    add("R4", "0 missing (gaps listed if any)", observed, status)
 
     print("Site")
     site = site_checks()

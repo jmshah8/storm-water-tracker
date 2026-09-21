@@ -1214,20 +1214,41 @@ def step_3_5(args):
     print("PASS" if ok else "FAIL")
     return 0 if ok else 1
 
+
+# ---------------------------------------------------------------- step 2.6
+
+def step_2_6(args):
+    """Radar back-fill coverage (03_PHASE2_RADAR_PLAN.md CHECK 2.6).
+
+    The same computation acceptance item R4 reports, so the plan's check and the acceptance table can never
+    disagree with each other.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from acceptance_phase2 import archive_coverage
+
+    observed, status = archive_coverage()
+    print(observed.replace("; ", ";\n    "))
+    print(status)
+    return 0 if status == "PASS" else 1
+
 STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13, "1.14": step_1_14,
-         "1.16": step_1_16, "2.3": step_2_3, "2.4": step_2_4, "3.4": step_3_4, "3.5": step_3_5}
+         "1.16": step_1_16, "2.3": step_2_3, "2.4": step_2_4, "2.6": step_2_6, "3.4": step_3_4, "3.5": step_3_5}
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--step", choices=sorted(STEPS))
-    ap.add_argument("--acceptance", choices=["phase1"])
+    ap.add_argument("--acceptance", choices=["phase1", "phase2"])
     ap.add_argument("--grid", help="step 2.3: the .npz written by scripts/radar.py day --save-grid")
     ap.add_argument("--hours", type=int, default=48, help="step 1.16: the soak window (default 48)")
     args = ap.parse_args()
     if not args.step and not args.acceptance:
         ap.error("give --step or --acceptance")
     try:
+        if args.acceptance == "phase2":
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from acceptance_phase2 import acceptance_phase2
+            return acceptance_phase2(args)
         return acceptance_phase1(args) if args.acceptance else STEPS[args.step](args)
     except NetworkError as e:
         print(f"network error: {e}", file=sys.stderr)

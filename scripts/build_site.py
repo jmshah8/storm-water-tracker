@@ -512,7 +512,7 @@ def build(out_dir, hero_only=False):
     render("thames_backtest.html", "thames-backtest.html", active="companies", bt=backtest,
            radar_cover=radar_coverage(frames))
 
-    render("method.html", "method.html", active="method",
+    render("method.html", "method.html", active="method", n_events=len(rows),
            n_no_coords=sum(1 for o in overflows.values() if not o["latitude"] or not o["longitude"]),
            n_st_connect=overflow_counts["st-connect"], radar_cover=radar_coverage(frames))
     data_files = sorted(p.relative_to(data).as_posix() for p in (data / "classification").glob("*.csv"))
