@@ -39,6 +39,18 @@ COMPANY_SPILLS_PER_PAGE = 100
 LATEST_SPILLS = 20
 HYDROLOGY = "https://environment.data.gov.uk/hydrology/id"
 RADAR_THRESHOLD_MM = 0.25   # the same threshold as the rule, applied to the radar's 3x3 maximum
+# A flag is "contested" when radar saw materially more rain than the gauge did, not merely a shade more
+# (20 Sep 2026, Jaimin's decision to count those separately). The bar is four times the rule's own 0.25 mm,
+# because the median contradiction across the archive is 0.79 mm: most disagreements are a radar estimate
+# sitting just the other side of the same line, which is not evidence that a flag is wrong.
+CONTESTED_MM = 1.0
+
+
+def contested(row):
+    """True when the radar positively contradicts a dry day flag by a material margin."""
+    return (row["verdict"] == "dry_day" and row["radar_status"] == "complete"
+            and bool(row["radar_3x3_max_total_mm"])
+            and float(row["radar_3x3_max_total_mm"]) > CONTESTED_MM)
 EA_RULE = ("A dry day spill is when a storm overflow is used on a 'dry day' – which is defined as "
            "no rainfall above 0.25mm on that day and the preceding 24 hours.")
 MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -176,11 +188,12 @@ def thames_backtest(rows, n_overflows, launch_day, today):
         in_p = [r for r in thames
                 if start.isoformat() <= r["start_utc"][:10] <= end.isoformat()
                 and (source is None or r["source"] == source)]
-        dry = [r for r in in_p if r["verdict"] == "dry_day"]
+        dry = [r for r in in_p if r["verdict"] == "dry_day" and not contested(r)]
+        n_contested = sum(1 for r in in_p if contested(r))
         complete = [r for r in in_p if r["verdict"] in ("dry_day", "not_dry")]
-        checked = [r for r in dry if r["radar_label"]]
+        checked = [r for r in in_p if r["verdict"] == "dry_day" and r["radar_label"]]
         agrees = [r for r in checked if r["radar_label"] == "radar_agrees"]
-        return {"label": label, "note": note, "events": len(in_p), "dry": len(dry),
+        return {"label": label, "note": note, "events": len(in_p), "dry": len(dry), "contested": n_contested,
                 "per100": per_100(len(dry), n_overflows),
                 "complete_share": f"{len(complete) * 100 / len(in_p):.0f}" if in_p else "",
                 "radar_checked": len(checked), "radar_agrees": len(agrees),
@@ -200,7 +213,7 @@ def thames_backtest(rows, n_overflows, launch_day, today):
     while m <= today:
         end = date(m.year + (m.month // 12), m.month % 12 + 1, 1) - timedelta(days=1)
         in_m = [r for r in thames if m.isoformat() <= r["start_utc"][:10] <= min(end, today).isoformat()]
-        dry = sum(1 for r in in_m if r["verdict"] == "dry_day")
+        dry = sum(1 for r in in_m if r["verdict"] == "dry_day" and not contested(r))
         complete = sum(1 for r in in_m if r["verdict"] in ("dry_day", "not_dry"))
         monthly.append({"key": f"{m.year}-{m.month:02d}", "label": f"{MONTHS[m.month - 1]} {m.year}",
                         "events": len(in_m), "dry": dry,
@@ -312,7 +325,9 @@ def write_hero(overflows, rows, today, launch_day, path):
         return off_x + (lon * kx - min(xs)) * scale, off_y + (max(ys) - lat) * scale
 
     _, _, start, end = periods(today, launch_day)[0]
-    flagged = sorted({r["overflow_key"] for r in rows if r["verdict"] == "dry_day" and in_period(r, start, end)
+    # the same definition the tiles use: a flag the radar contradicts is not lit on the map
+    flagged = sorted({r["overflow_key"] for r in rows if r["verdict"] == "dry_day"
+                      and not contested(r) and in_period(r, start, end)
                       and r["overflow_key"] in points})
     keys = sorted(points)
     step = math.ceil(len(keys) / HERO_MAX_DASHES)
@@ -355,6 +370,10 @@ def build(out_dir, hero_only=False):
     launch_day = date.fromisoformat(launch_utc[:10])
     site_url = meta["site_url"]
 
+    # the hero needs the radar label too, so derive it before drawing rather than in the loop below
+    for r in rows:
+        r["radar_label"] = radar_label(r)
+
     hero = write_hero(overflows, rows, today, launch_day, ROOT / "static" / "england-overflows.svg")
     print(f"hero: {hero[0]} dashes, {hero[1]} flagged (dry day spills in the last 30 days)")
     if hero_only:
@@ -366,7 +385,6 @@ def build(out_dir, hero_only=False):
         r["duration_s"] = duration_seconds(r)
         r["duration_text"] = fmt_duration(r["duration_s"])
         r["watercourse"] = r["overflow"].get("receiving_watercourse", "").strip()
-        r["radar_label"] = radar_label(r)
 
     page_rows = [r for r in rows if r["verdict"] in PAGE_EVENT_VERDICTS]
     slugs = slug_map([r["event_id"] for r in page_rows])
@@ -399,19 +417,27 @@ def build(out_dir, hero_only=False):
     for key, label, start, end in period_list:
         in_p = [r for r in rows if in_period(r, start, end)]
         ev_c = Counter(r["company_slug"] for r in in_p)
-        dry_c = Counter(r["company_slug"] for r in in_p if r["verdict"] == "dry_day")
+        # A flag the radar positively contradicts is "contested": it is still published, still has its page
+        # and still sits in every CSV, but it is counted separately from the headline figure (20 Sep 2026,
+        # Jaimin's decision). A flag the radar cannot check at all is NOT contested — the Met Office archive
+        # only reaches back two years, and a discharge must not be demoted for that.
+        dry_c = Counter(r["company_slug"] for r in in_p
+                        if r["verdict"] == "dry_day" and not contested(r))
+        contested_c = Counter(r["company_slug"] for r in in_p if contested(r))
         checked_c = Counter(r["company_slug"] for r in in_p if r["radar_label"])
         agree_c = Counter(r["company_slug"] for r in in_p if r["radar_label"] == "radar_agrees")
         league[key] = {
             "key": key, "label": label, "start": start, "end": end,
             "rows": [{"slug": slug, "name": name, "overflows": overflow_counts[slug], "events": ev_c[slug],
-                      "dry": dry_c[slug], "per100": per_100(dry_c[slug], overflow_counts[slug]),
+                      "dry": dry_c[slug], "contested": contested_c[slug],
+                      "per100": per_100(dry_c[slug], overflow_counts[slug]),
                       "last_dry": last_dry.get(slug, ""), "last_dry_text": fmt_date(last_dry.get(slug, "")),
                       "radar_agrees": agree_c[slug], "radar_checked": checked_c[slug],
                       "radar_share": f"{agree_c[slug] * 100 / checked_c[slug]:.0f}" if checked_c[slug] else ""}
                      for slug, name in COMPANIES],
         }
-        tiles[key] = {"dry": sum(dry_c.values()), "events": len(in_p)}
+        tiles[key] = {"dry": sum(dry_c.values()), "contested": sum(contested_c.values()),
+                      "events": len(in_p)}
 
     env = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True, undefined=StrictUndefined,
                       trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
@@ -465,10 +491,11 @@ def build(out_dir, hero_only=False):
             start = max(m, launch_day)
             end = date(m.year + (m.month // 12), m.month % 12 + 1, 1) - timedelta(days=1)
             in_m = [r for r in company_rows if in_period(r, start, end)]
-            dry = sum(1 for r in in_m if r["verdict"] == "dry_day")
+            dry = sum(1 for r in in_m if r["verdict"] == "dry_day" and not contested(r))
+            n_contested = sum(1 for r in in_m if contested(r))
             complete = sum(1 for r in in_m if r["verdict"] in ("dry_day", "not_dry") and r["n_readings_present"] == "192")
             label = f"{MONTHS[m.month - 1]} {m.year}" + (f" (partial, from {fmt_date(launch_day)})" if start > m else "")
-            monthly.append({"label": label, "events": len(in_m), "dry": dry,
+            monthly.append({"label": label, "events": len(in_m), "dry": dry, "contested": n_contested,
                             "per100": per_100(dry, overflow_counts[slug]),
                             "complete_share": f"{complete * 100 / len(in_m):.0f}" if in_m else ""})
         company_dry = [r for r in dry_rows if r["company_slug"] == slug]

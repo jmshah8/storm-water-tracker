@@ -15,6 +15,7 @@
         <th scope="col" class="num" data-sort><button type="button">Overflows</button></th>
         <th scope="col" class="num" data-sort><button type="button">Events</button></th>
         <th scope="col" class="num" data-sort><button type="button">Dry day spills</button></th>
+        <th scope="col" class="num" data-sort><button type="button">Contested by radar</button></th>
         <th scope="col" class="num" data-sort><button type="button">Dry day per 100 overflows</button></th>
         <th scope="col" class="num" data-sort><button type="button">Radar agrees</button></th>
         <th scope="col" data-sort><button type="button">Last dry day spill</button></th>
@@ -27,6 +28,7 @@
         <td class="num" data-metric="overflows" data-value="{{ row.overflows }}">{{ row.overflows }}</td>
         <td class="num" data-metric="events" data-value="{{ row.events }}">{{ row.events }}</td>
         <td class="num flag" data-metric="dry" data-value="{{ row.dry }}">{{ row.dry }}</td>
+        <td class="num" data-metric="contested" data-value="{{ row.contested }}">{{ row.contested or "—" }}</td>
         <td class="num" data-metric="per100" data-value="{{ row.per100 }}">{{ row.per100 }}</td>
         <td class="num" data-metric="radar_agrees" data-value="{{ row.radar_agrees }}" data-sort-value="{{ row.radar_share or -1 }}">{% if row.radar_checked %}{{ row.radar_agrees }} of {{ row.radar_checked }} ({{ row.radar_share }}%){% else %}—{% endif %}</td>
         <td data-metric="last_dry" data-value="{{ row.last_dry }}" data-sort-value="{{ row.last_dry }}">{{ row.last_dry_text or '—' }}</td>

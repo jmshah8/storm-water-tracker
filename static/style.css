@@ -101,6 +101,7 @@ strong { font-weight: 500; }
 .tile { border-top: 1px solid var(--rule); padding-top: 16px; }
 .tile .value { display: block; font-size: 40px; line-height: 1.1; margin-top: 8px; font-variant-numeric: tabular-nums; }
 .tile--flag .value { color: var(--flag); }
+.tile-note { display: block; margin-top: 6px; font-size: 13px; color: var(--muted); }
 
 /* tables */
 .table-scroll { overflow-x: auto; }

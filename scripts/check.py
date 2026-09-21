@@ -325,9 +325,16 @@ def site_checks():
         start, end = ranges[key]
         return start.isoformat() <= r["day_utc"] <= end.isoformat()
 
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from build_site import contested   # the site's own definition of a contested flag, not a copy of it
+
     expected = {
-        "tile-dry-last30": sum(1 for r in rows if r["verdict"] == "dry_day" and within(r, "last30")),
-        "tile-dry-year": sum(1 for r in rows if r["verdict"] == "dry_day" and within(r, "year")),
+        "tile-dry-last30": sum(1 for r in rows
+                               if r["verdict"] == "dry_day" and not contested(r) and within(r, "last30")),
+        "tile-dry-year": sum(1 for r in rows
+                             if r["verdict"] == "dry_day" and not contested(r) and within(r, "year")),
+        "tile-contested-last30": sum(1 for r in rows if contested(r) and within(r, "last30")),
+        "tile-contested-year": sum(1 for r in rows if contested(r) and within(r, "year")),
         "tile-events-last30": sum(1 for r in rows if within(r, "last30")),
         "tile-overflows": len(overflows),
         "hero-overflows": len(overflows),
@@ -352,10 +359,12 @@ def site_checks():
             for tr in (el for el in table.iter("tr") if el.get("data-company")):
                 slug = tr.get("data-company")
                 in_p = [r for r in rows if r["company_slug"] == slug and within(r, key)]
-                dry = sum(1 for r in in_p if r["verdict"] == "dry_day")
+                dry = sum(1 for r in in_p if r["verdict"] == "dry_day" and not contested(r))
+                n_contested = sum(1 for r in in_p if contested(r))
                 agrees = sum(1 for r in in_p if r["verdict"] == "dry_day" and r["radar_status"] == "complete"
                              and r["radar_3x3_max_total_mm"] and float(r["radar_3x3_max_total_mm"]) <= 0.25)
                 exp = {"overflows": str(n_overflows[slug]), "events": str(len(in_p)), "dry": str(dry),
+                       "contested": str(n_contested),   # data-value is always the number; the cell shows an em dash at 0
                        "per100": f"{dry * 100 / n_overflows[slug]:.1f}" if n_overflows[slug] else "0.0",
                        "radar_agrees": str(agrees), "last_dry": last_dry.get(slug, "")}
                 got = {td.get("data-metric"): td.get("data-value") for td in tr.iter("td")}
@@ -1119,6 +1128,9 @@ def step_3_5(args):
         if metric and metric.startswith("bt-") and el.get("data-value") is not None:
             shown[(metric, el.get("data-key") or "")] = el.get("data-value")
 
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from build_site import contested   # the site's own definition, imported rather than restated
+
     rows = [r for r in read_csv(data / "classification" / "all_events_classified.csv")
             if r["company_slug"] == "thames"]
     meta = read_json_file(data / "meta.json")
@@ -1136,11 +1148,12 @@ def step_3_5(args):
 
     def add_year(label, start, end, source=None):
         in_p = window(start, end, source)
-        dry = [r for r in in_p if r["verdict"] == "dry_day"]
+        dry = [r for r in in_p if r["verdict"] == "dry_day" and not contested(r)]
         complete = [r for r in in_p if r["verdict"] in ("dry_day", "not_dry")]
-        checked = [r for r in dry if r["event_id"] in radar_ok]
+        checked = [r for r in in_p if r["verdict"] == "dry_day" and r["event_id"] in radar_ok]
         expected[("bt-year-events", label)] = str(len(in_p))
         expected[("bt-year-dry", label)] = str(len(dry))
+        expected[("bt-year-contested", label)] = str(sum(1 for r in in_p if contested(r)))
         expected[("bt-year-per100", label)] = f"{len(dry) * 100 / n_overflows:.1f}" if n_overflows else "0.0"
         expected[("bt-year-complete", label)] = f"{len(complete) * 100 / len(in_p):.0f}" if in_p else ""
         expected[("bt-year-radar", label)] = (
@@ -1160,9 +1173,10 @@ def step_3_5(args):
         in_m = window(month.isoformat(), min(end, _date.today()).isoformat())
         key = f"{month.year}-{month.month:02d}"
         expected[("bt-month-events", key)] = str(len(in_m))
-        expected[("bt-month-dry", key)] = str(sum(1 for r in in_m if r["verdict"] == "dry_day"))
+        expected[("bt-month-dry", key)] = str(sum(1 for r in in_m
+                                                   if r["verdict"] == "dry_day" and not contested(r)))
         total_events += len(in_m)
-        total_dry += sum(1 for r in in_m if r["verdict"] == "dry_day")
+        total_dry += sum(1 for r in in_m if r["verdict"] == "dry_day" and not contested(r))
         month = _date(month.year + (month.month // 12), month.month % 12 + 1, 1)
     expected[("bt-events", "")] = str(total_events)
     expected[("bt-dry", "")] = str(total_dry)
@@ -1238,17 +1252,20 @@ STEPS = {"1.8": step_1_8, "1.9": step_1_9, "1.11": step_1_11, "1.13": step_1_13,
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--step", choices=sorted(STEPS))
-    ap.add_argument("--acceptance", choices=["phase1", "phase2"])
+    ap.add_argument("--acceptance", choices=["phase1", "phase2", "phase3"])
     ap.add_argument("--grid", help="step 2.3: the .npz written by scripts/radar.py day --save-grid")
     ap.add_argument("--hours", type=int, default=48, help="step 1.16: the soak window (default 48)")
     args = ap.parse_args()
     if not args.step and not args.acceptance:
         ap.error("give --step or --acceptance")
     try:
-        if args.acceptance == "phase2":
+        if args.acceptance in ("phase2", "phase3"):
             sys.path.insert(0, str(ROOT / "scripts"))
-            from acceptance_phase2 import acceptance_phase2
-            return acceptance_phase2(args)
+            if args.acceptance == "phase2":
+                from acceptance_phase2 import acceptance_phase2
+                return acceptance_phase2(args)
+            from acceptance_phase3 import acceptance_phase3
+            return acceptance_phase3(args)
         return acceptance_phase1(args) if args.acceptance else STEPS[args.step](args)
     except NetworkError as e:
         print(f"network error: {e}", file=sys.stderr)

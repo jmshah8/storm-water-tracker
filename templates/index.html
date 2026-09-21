@@ -22,12 +22,12 @@
 <section class="section">
   <div class="wrap">
     <div class="tiles">
-      <div class="tile tile--flag"><span class="label">Dry day spills · last 30 days</span><span class="value" data-metric="tile-dry-last30" data-value="{{ tiles.last30.dry }}">{{ tiles.last30.dry }}</span></div>
-      <div class="tile tile--flag"><span class="label">Dry day spills · this year</span><span class="value" data-metric="tile-dry-year" data-value="{{ tiles.year.dry }}">{{ tiles.year.dry }}</span></div>
+      <div class="tile tile--flag"><span class="label">Dry day spills · last 30 days</span><span class="value" data-metric="tile-dry-last30" data-value="{{ tiles.last30.dry }}">{{ tiles.last30.dry }}</span>{% if tiles.last30.contested %}<span class="tile-note"><span data-metric="tile-contested-last30" data-value="{{ tiles.last30.contested }}">{{ tiles.last30.contested }}</span> more contested by radar</span>{% endif %}</div>
+      <div class="tile tile--flag"><span class="label">Dry day spills · this year</span><span class="value" data-metric="tile-dry-year" data-value="{{ tiles.year.dry }}">{{ tiles.year.dry }}</span>{% if tiles.year.contested %}<span class="tile-note"><span data-metric="tile-contested-year" data-value="{{ tiles.year.contested }}">{{ tiles.year.contested }}</span> more contested by radar</span>{% endif %}</div>
       <div class="tile"><span class="label">Events recorded · last 30 days</span><span class="value" data-metric="tile-events-last30" data-value="{{ tiles.last30.events }}">{{ tiles.last30.events }}</span></div>
       <div class="tile"><span class="label">Overflows tracked</span><span class="value" data-metric="tile-overflows" data-value="{{ n_overflows }}">{{ n_overflows }}</span></div>
     </div>
-    <p class="period-note" style="margin-top: 24px">Counts start on {{ launch_date }}, when this record began, and count events by the UTC day they started. The last 30 days end yesterday; this year runs to today.</p>
+    <p class="period-note" style="margin-top: 24px">Counts start on {{ launch_date }}, when this record began, and count events by the UTC day they started. The last 30 days end yesterday; this year runs to today. A flag is <strong>contested</strong> when Met Office radar recorded rain over the overflow that its gauge did not: those are counted separately rather than added in, and every one is still published with its evidence. <a href="{{ root }}method.html#contested">How this works</a>.</p>
   </div>
 </section>
 

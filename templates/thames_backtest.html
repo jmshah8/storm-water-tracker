@@ -22,7 +22,7 @@
 
   <section class="section">
     <h2>By year</h2>
-    <p class="period-note">Events counted by the UTC day they started. “Complete rain data” is the share of events that reached a dry day or not-dry verdict rather than waiting on readings. “Radar agrees” counts only flags where the Met Office radar archive covers the window.</p>
+    <p class="period-note">Events counted by the UTC day they started. “Complete rain data” is the share of events that reached a dry day or not-dry verdict rather than waiting on readings. “Radar agrees” counts only flags where the Met Office radar archive covers the window. A flag is “contested” when radar recorded materially more rain than the gauge did (<a href="{{ root }}method.html#contested">what that means</a>); contested flags are counted in their own column, not in the dry day total.</p>
     <div class="table-scroll">
     <table>
       <thead>
@@ -30,6 +30,7 @@
           <th scope="col">Year</th>
           <th scope="col" class="num">Events</th>
           <th scope="col" class="num">Dry day spills</th>
+          <th scope="col" class="num">Contested by radar</th>
           <th scope="col" class="num">Dry day per 100 overflows</th>
           <th scope="col" class="num">Complete rain data</th>
           <th scope="col" class="num">Radar agrees</th>
@@ -41,6 +42,7 @@
           <th scope="row">{{ y.label }}{% if y.note %} <small class="muted">{{ y.note }}</small>{% endif %}</th>
           <td class="num" data-metric="bt-year-events" data-key="{{ y.label }}" data-value="{{ y.events }}">{{ y.events|thin }}</td>
           <td class="num" data-metric="bt-year-dry" data-key="{{ y.label }}" data-value="{{ y.dry }}">{{ y.dry|thin }}</td>
+          <td class="num" data-metric="bt-year-contested" data-key="{{ y.label }}" data-value="{{ y.contested }}">{{ y.contested|thin or "—" }}</td>
           <td class="num" data-metric="bt-year-per100" data-key="{{ y.label }}" data-value="{{ y.per100 }}">{{ y.per100 }}</td>
           <td class="num" data-metric="bt-year-complete" data-key="{{ y.label }}" data-value="{{ y.complete_share }}">{% if y.complete_share %}{{ y.complete_share }}%{% else %}—{% endif %}</td>
           <td class="num" data-metric="bt-year-radar" data-key="{{ y.label }}" data-value="{{ y.radar_share }}">{% if y.radar_checked %}{{ y.radar_share }}% <small class="muted">of {{ y.radar_checked|thin }}</small>{% else %}no radar{% endif %}</td>
