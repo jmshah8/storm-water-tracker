@@ -6914,7 +6914,7 @@
   "anglian:AWS01264": {
     "latest_event_end_ms": 1789079538000,
     "latest_event_start_ms": 1789079434000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1789080343000
   },
   "anglian:AWS01265": {
@@ -9248,8 +9248,8 @@
   "northumbrian:NWL00109": {
     "latest_event_end_ms": 1741162227000,
     "latest_event_start_ms": 1741162139000,
-    "status": 0,
-    "status_start_ms": 1741162227000
+    "status": -1,
+    "status_start_ms": 1790118992000
   },
   "northumbrian:NWL00110": {
     "latest_event_end_ms": 1773332149000,
@@ -12068,8 +12068,8 @@
   "northumbrian:NWL00580": {
     "latest_event_end_ms": 1788809159000,
     "latest_event_start_ms": 1788808559000,
-    "status": -1,
-    "status_start_ms": 1789743601000
+    "status": 0,
+    "status_start_ms": 1788809159000
   },
   "northumbrian:NWL00581": {
     "latest_event_end_ms": 1780409879000,
@@ -34182,8 +34182,8 @@
     "status_start_ms": 1778764371000
   },
   "south-west:SBB00284": {
-    "latest_event_end_ms": null,
-    "latest_event_start_ms": 1790118227000,
+    "latest_event_end_ms": 1790118953000,
+    "latest_event_start_ms": 1790118771000,
     "status": -1,
     "status_start_ms": 1789541531000
   },
@@ -37854,10 +37854,10 @@
     "status_start_ms": 1788848811000
   },
   "south-west:SBB00930": {
-    "latest_event_end_ms": 1790117525000,
-    "latest_event_start_ms": 1790117405000,
-    "status": 0,
-    "status_start_ms": 1790117525000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1790118245000,
+    "status": 1,
+    "status_start_ms": 1790118245000
   },
   "south-west:SBB00931": {
     "latest_event_end_ms": 1788840698000,
@@ -46593,7 +46593,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1790118082000
+    "status_start_ms": 1790118981000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1788016080000,
@@ -82974,10 +82974,10 @@
     "status_start_ms": 1788488469000
   },
   "yorkshire:YWS01879": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1790116320000,
     "latest_event_start_ms": 1790101980000,
-    "status": 1,
-    "status_start_ms": 1790101980000
+    "status": 0,
+    "status_start_ms": 1790116320000
   },
   "yorkshire:YWS01880": {
     "latest_event_end_ms": 1788821160000,
