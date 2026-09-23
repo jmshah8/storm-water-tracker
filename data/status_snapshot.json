@@ -1286,7 +1286,7 @@
   "anglian:AWS00231": {
     "latest_event_end_ms": 1771793116000,
     "latest_event_start_ms": 1771792874000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1771793160000
   },
   "anglian:AWS00232": {
@@ -2498,7 +2498,7 @@
   "anglian:AWS00452": {
     "latest_event_end_ms": 1787863409000,
     "latest_event_start_ms": 1787842892000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1787863569000
   },
   "anglian:AWS00453": {
@@ -2934,10 +2934,10 @@
     "status_start_ms": 1790150452000
   },
   "anglian:AWS00529": {
-    "latest_event_end_ms": 1790156472000,
-    "latest_event_start_ms": 1790156036000,
-    "status": 0,
-    "status_start_ms": 1790156491000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1790157771000,
+    "status": 1,
+    "status_start_ms": 1790157817000
   },
   "anglian:AWS00530": {
     "latest_event_end_ms": 1788126600000,
@@ -4950,10 +4950,10 @@
     "status_start_ms": 1787843823000
   },
   "anglian:AWS00895": {
-    "latest_event_end_ms": 1790146443000,
-    "latest_event_start_ms": 1790143868000,
+    "latest_event_end_ms": 1790156686000,
+    "latest_event_start_ms": 1790156600000,
     "status": 0,
-    "status_start_ms": 1790146887000
+    "status_start_ms": 1790156771000
   },
   "anglian:AWS00896": {
     "latest_event_end_ms": 1787649731000,
@@ -6168,10 +6168,10 @@
     "status_start_ms": 1774260096000
   },
   "anglian:AWS01124": {
-    "latest_event_end_ms": 1780401680000,
-    "latest_event_start_ms": 1780387179000,
-    "status": 0,
-    "status_start_ms": 1780401686000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1790158009000,
+    "status": 1,
+    "status_start_ms": 1790158450000
   },
   "anglian:AWS01125": {
     "latest_event_end_ms": 1787823901000,
@@ -34182,8 +34182,8 @@
     "status_start_ms": 1778764371000
   },
   "south-west:SBB00284": {
-    "latest_event_end_ms": null,
-    "latest_event_start_ms": 1790157645000,
+    "latest_event_end_ms": 1790158673000,
+    "latest_event_start_ms": 1790158371000,
     "status": -1,
     "status_start_ms": 1789541531000
   },
