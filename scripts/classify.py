@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from swt.geo import nearest_gauges  # noqa: E402
-from swt.io import read_csv, write_csv  # noqa: E402
+from swt.io import load_events, read_csv, write_csv  # noqa: E402
 from swt.rule import RULE_VERSION, classify_event  # noqa: E402
 from swt.timeutil import now_iso  # noqa: E402
 
@@ -159,12 +159,9 @@ def main():
 
     overflows = {r["overflow_key"]: r for r in read_csv(data / "overflows.csv")}
     gauges = read_csv(data / "rain" / "gauges.csv")
-    events = [r for p in sorted((data / "events").glob("*.csv")) for r in read_csv(p)]
-    # Phase 3: Thames Water's own history back to April 2022, already de-duplicated against the events the
-    # Hub seeded at launch. events_overlap.csv is validation only and is never classified.
-    history = data / "thames_history" / "events_pre_launch.csv"
-    if history.exists():
-        events += read_csv(history)
+    # Phase 3: the Hub's events plus Thames Water's own history back to April 2022, one row per
+    # event_id. check.py reads the same helper, so the classifier and the checks cannot drift.
+    events = load_events(data)
     if not overflows or not gauges:
         print("overflows.csv or rain/gauges.csv is missing or empty", file=sys.stderr)
         return 1

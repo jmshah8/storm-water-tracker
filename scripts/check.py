@@ -16,7 +16,7 @@ import requests
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from swt.io import read_csv  # noqa: E402
+from swt.io import load_events, read_csv  # noqa: E402
 
 HYDROLOGY = "https://environment.data.gov.uk/hydrology/id"
 FLOOD_MONITORING = "https://environment.data.gov.uk/flood-monitoring/id"
@@ -171,16 +171,8 @@ def step_1_8(args):
 
 
 def classified_event_rows(data=None):
-    """Every event the classifier reads: data/events/*.csv plus the Thames pre-launch history (step 3.3).
-
-    events_overlap.csv is validation only and is never classified, so it is not included here either.
-    """
-    data = data or (ROOT / "data")
-    rows = [r for p in sorted((data / "events").glob("*.csv")) for r in read_csv(p)]
-    history = data / "thames_history" / "events_pre_launch.csv"
-    if history.exists():
-        rows += read_csv(history)
-    return rows
+    """Every event the classifier reads, via the classifier's own helper so the two cannot drift."""
+    return load_events(data or (ROOT / "data"))
 
 # ---------------------------------------------------------------- step 1.9
 
