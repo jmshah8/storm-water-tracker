@@ -84,11 +84,17 @@ strong { font-weight: 500; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .hero-visual img { animation: none; } }
 .hero .wrap { position: relative; width: 100%; padding-bottom: 72px; display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; align-items: end; }
-.hero-text { grid-column: 1 / span 7; }
+/* Both hero blocks sit directly on top of the overflow map. A dark halo in the background colour
+   pushes the dashes back from the edges of the type; the map itself is untouched. */
+.hero-text { grid-column: 1 / span 7; text-shadow: 0 0 10px var(--bg), 0 0 6px var(--bg); }
 .hero-title { font-size: clamp(36px, 5vw, 64px); line-height: 1.05; font-weight: 400; letter-spacing: -0.01em; margin: 0 0 20px; }
 .hero-sub { font-size: 18px; color: var(--muted); max-width: 40ch; margin: 0; }
-.hero-aside { grid-column: 9 / span 4; border-top: 1px solid var(--rule); padding-top: 16px; }
-.hero-aside p { font-size: 14px; color: var(--muted); margin: 12px 0 0; }
+/* This block had the worst of it: small --muted type over the densest part of the map. It goes to
+   full --text, and the halo is one stop stronger than the headline's. */
+.hero-aside { grid-column: 9 / span 4; border-top: 1px solid var(--rule); padding-top: 16px;
+  text-shadow: 0 0 10px var(--bg), 0 0 6px var(--bg), 0 0 3px var(--bg); }
+.hero-aside .label { color: var(--text); }
+.hero-aside p { font-size: 14px; color: var(--text); margin: 12px 0 0; }
 
 /* sections */
 .section { padding: 96px 0; border-top: 1px solid var(--rule); }
@@ -164,6 +170,12 @@ blockquote { margin: 0 0 16px; padding-left: 16px; border-left: 1px solid var(--
 /* method / data prose */
 .prose h2 { margin-top: 56px; }
 .prose h2:first-child { margin-top: 0; }
+/* Part headings divide the method page into its six stages, so a reader can see where they are. */
+.prose h2.part { margin-top: 80px; padding-top: 24px; border-top: 1px solid var(--rule); }
+.prose h2.part:first-of-type { margin-top: 40px; }
+.part-num { display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); margin-bottom: 8px; }
+.prose h3 { margin-top: 36px; }
 .prose ul { padding-left: 20px; max-width: 72ch; }
 .prose li { margin-bottom: 8px; }
 .sources li { margin-bottom: 20px; }

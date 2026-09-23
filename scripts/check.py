@@ -927,11 +927,13 @@ def acceptance_phase1(args):
     print("E. Hygiene")
     secrets = run(["git", "grep", "-inE", "client_secret|netlify_auth|nfp_", "--", ".", ":!build-pack",
                    ":!NOTES_FOR_JAIMIN.md"])
-    # Two matches carry no secret value and are expected (Jaimin's decision, 18 Sep 2026): the workflow line that
-    # names the GitHub secret (the value is substituted at run time and never stored), and this file, which
-    # contains the search pattern itself. Anything else is a failure.
+    # These matches carry no secret value and are expected (Jaimin's decision, 18 Sep 2026): the workflow line
+    # that names the GitHub secret (the value is substituted at run time and never stored), and the scanners
+    # themselves — this file and the acceptance harnesses — which must spell out the patterns they search for.
+    # Anything else is a failure.
     expected = re.compile(r"^\.github/workflows/[^:]+:\d+:\s*[A-Z_]+: \$\{\{ secrets\.[A-Z_]+ \}\}\s*$"
-                          r"|^scripts/check\.py:\d+:")
+                          r"|^scripts/check\.py:\d+:"
+                          r"|^scripts/acceptance_phase\d\.py:\d+:")
     hits = [line for line in secrets.stdout.splitlines() if not expected.match(line)]
     ignored = ".env" in (ROOT / ".gitignore").read_text(encoding="utf-8")
     tracked_env = run(["git", "ls-files", ".env"]).stdout.strip()
