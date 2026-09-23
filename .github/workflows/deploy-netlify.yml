@@ -47,4 +47,9 @@ jobs:
           git add data/deploy_log.json
           git diff --cached --quiet && exit 0
           git commit -m "deploy: $KIND $(date -u +%FT%TZ)"
-          for i in 1 2 3; do git pull --rebase && git push && break || sleep 5; done
+          # --autostash: build_site.py regenerates the tracked static/england-overflows.svg, and a
+          # plain rebase refuses to run while that is unstaged. Without it the push silently never
+          # happened and deploy_log.json under-recorded, which would let the budget guard undercount.
+          for i in 1 2 3; do git pull --rebase --autostash && git push && break || sleep 5; done
+          # The retry loop ends in `|| sleep 5`, so it cannot fail the step on its own. Say so here.
+          git diff --quiet origin/main -- data/deploy_log.json || { echo "deploy log never pushed"; exit 1; }
