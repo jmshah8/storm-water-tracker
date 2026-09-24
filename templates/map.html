@@ -42,12 +42,20 @@
   <div class="map-holder" data-map>
     <svg viewBox="0 0 {{ width }} {{ height }}" class="map-svg" role="img"
          aria-label="Storm overflows in England that have discharged since this record began, drawn at their published coordinates. The table below lists the same overflows and is the accessible equivalent of this map.">
+      {# England's nine official regions (ONS, December 2022), drawn first so every dot sits on top
+         of them. Same projection as the dots, so the two line up exactly. #}
+      <g class="regions">
+      {% for r in regions %}<path class="region" d="{{ r.d }}" fill-opacity="{{ r.shade }}" data-region="{{ r.name }}" tabindex="0" role="button" aria-label="{{ r.name }}"/>
+      {% endfor %}
+      </g>
       {# One circle per entry in points, in the same order as the table rows below, so site.js pairs
          the two by position. Each dot carries only what filtering needs: the company, and per period
          "events:statuscodes". Everything the popup shows is read from the matching row. #}
       {% for p in points %}{% set n = p.periods %}<circle class="dot" cx="{{ p.x }}" cy="{{ p.y }}" r="3.2" data-c="{{ p.company_slug }}"{% for key, label, start, end in periods %} data-p{{ loop.index0 }}="{{ n[key].n }}:{{ n[key].codes }}"{% endfor %}/>
       {% endfor %}
     </svg>
+
+    <p class="map-region" data-region-readout hidden><span data-region-label></span></p>
 
     <div class="map-pop" data-map-popup hidden>
       <button type="button" class="map-pop-close" data-pop-close aria-label="Close">×</button>
@@ -63,7 +71,7 @@
     </div>
   </div>
 
-  <p class="period-note">A lit dot is an overflow with at least one dry day spill in the selected period that the radar does not contest. Every other matching overflow is drawn in grey. Hover a dot to pick it out, click it for the detail. Overflows whose company publishes no coordinates cannot be placed and are not on this map; they are still counted everywhere else on the site.</p>
+  <p class="period-note">A lit dot is an overflow with at least one dry day spill in the selected period that the radar does not contest. Every other matching overflow is drawn in grey. Hover a dot to pick it out, click it for the detail. Click anywhere else on the map to name the region you clicked. Overflows whose company publishes no coordinates cannot be placed and are not on this map; they are still counted everywhere else on the site.</p>
 
   <h2 class="map-table-head">The same overflows, as a table</h2>
   <div class="table-scroll">
@@ -81,7 +89,7 @@
           {% endfor %}
         </tr>
       </thead>
-      <tbody>
+      <tbody data-more>
         {% for p in points %}{% set n = p.periods %}
         <tr data-c="{{ p.company_slug }}"{% for key, label, start, end in periods %} data-p{{ loop.index0 }}="{{ n[key].n }}:{{ n[key].codes }}"{% endfor %}>
           <th scope="row">{{ p.name }}</th>

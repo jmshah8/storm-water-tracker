@@ -386,7 +386,47 @@ def status_code(row):
     return "c" if contested(row) else VERDICT_CODE[row["verdict"]]
 
 
-def map_points(overflows, rows, period_list):
+# Four shading levels, assigned so that no two regions sharing a border get the same one. Every
+# region is the same colour (--muted); only the opacity differs, which keeps the palette at eleven
+# values (acceptance D4) and keeps the fills faint enough that the dots stay the brightest thing on
+# the map. Adjacency was worked out from the boundaries themselves, not guessed.
+REGION_SHADE = {
+    "E12000001": "0.05",  # North East
+    "E12000002": "0.13",  # North West
+    "E12000003": "0.21",  # Yorkshire and The Humber
+    "E12000004": "0.05",  # East Midlands
+    "E12000005": "0.21",  # West Midlands
+    "E12000006": "0.13",  # East of England
+    "E12000007": "0.05",  # London
+    "E12000008": "0.29",  # South East
+    "E12000009": "0.05",  # South West
+}
+
+
+def region_rings(geojson):
+    """[(code, name, [ring, ...])] where a ring is a list of (lat, lon), sorted by region code."""
+    out = []
+    for f in geojson["features"]:
+        geom = f["geometry"]
+        polys = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
+        rings = [[(lat, lon) for lon, lat in ring] for poly in polys for ring in poly]
+        out.append((f["properties"]["code"], f["properties"]["name"], rings))
+    return sorted(out)
+
+
+def region_paths(regions, project):
+    """One SVG path per region, drawn with the same projection as the dots so the two line up."""
+    out = []
+    for code, name, rings in regions:
+        d = []
+        for ring in rings:
+            pts = [project(lat, lon) for lat, lon in ring]
+            d.append("M" + "L".join(f"{x:.1f} {y:.1f}" for x, y in pts) + "Z")
+        out.append({"code": code, "name": name, "d": "".join(d), "shade": REGION_SHADE[code]})
+    return out
+
+
+def map_points(overflows, rows, period_list, project):
     """One entry per overflow that discharged in any of the periods, sorted by overflow key.
 
     Each entry carries, for every period, how many events it had, how many were dry day spills, how
@@ -395,7 +435,6 @@ def map_points(overflows, rows, period_list):
     """
     points = {k: valid_coords(o) for k, o in overflows.items()}
     points = {k: p for k, p in points.items() if p}
-    project = projector(points, MAP_WIDTH, MAP_HEIGHT, MAP_PAD)
     by_key = defaultdict(list)
     for r in rows:
         if r["overflow_key"] in points:
@@ -623,11 +662,17 @@ def build(out_dir, hero_only=False):
     # The map covers the live record only. Thames Water's pre-launch history would otherwise bury
     # every other company under four and a half years of dots it alone has, which would read as a
     # map of England rather than what it is; that history has its own page and its own cautions.
-    points = map_points(overflows, [r for r in rows if r["day_utc"] >= launch_day.isoformat()], period_list)
+    # The projection is built from England's coastline rather than from the overflows, so the whole
+    # country fits the frame and the dots sit where they belong inside it.
+    regions = region_rings(read_json(data / "geo" / "regions.geojson"))
+    coast = {i: pt for i, pt in enumerate(pt for _c, _n, rings in regions for ring in rings for pt in ring)}
+    project = projector(coast, MAP_WIDTH, MAP_HEIGHT, MAP_PAD)
+    points = map_points(overflows, [r for r in rows if r["day_utc"] >= launch_day.isoformat()],
+                        period_list, project)
     if len(points) > 6000:
         print(f"note: the map page now carries {len(points)} overflows; consider paging the table", file=sys.stderr)
     render("map.html", "map.html", active="map", points=points, periods=period_list,
-           statuses=STATUSES, companies=COMPANIES,
+           statuses=STATUSES, companies=COMPANIES, regions=region_paths(regions, project),
            width=MAP_WIDTH, height=MAP_HEIGHT)
 
     render("method.html", "method.html", active="method", n_events=len(rows),

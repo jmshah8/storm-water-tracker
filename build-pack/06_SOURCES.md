@@ -139,6 +139,13 @@ Every link below was opened and the quote copied from the page on the date shown
    - Parameters in the documented example: `fz_filter(ds_pws, nint=6, n_stat=5)` with `max_distance = 10e3` — neighbours within **10 km**, at least **5** neighbouring stations, **6** consecutive intervals (at 5-minute resolution, 30 minutes).
    - The filter uses the **median** of the neighbours, not a count of wet ones, which is what makes it robust to a single unrepresentative neighbour.
 
+## Map regions (added 23 September 2026 for the Map page)
+
+28. **Office for National Statistics, Open Geography Portal, "Regions (December 2022) Boundaries EN BUC"** — https://services1.arcgis.com/ESMARspQHYMw9BZ9/arcgis/rest/services/Regions_December_2022_EN_BUC/FeatureServer/0 (fetched 2026-09-23). The nine regions of England (ITL1, formerly the Government Office Regions): North East, North West, Yorkshire and The Humber, East Midlands, West Midlands, East of England, London, South East, South West. BUC is the ultra-generalised, coastline-clipped version. Stored at `data/geo/regions.geojson` by `scripts/geo_regions.py` so the build never needs the network.
+29. **ONS geography licences** — https://www.ons.gov.uk/methodology/geography/licences (fetched 2026-09-23). Supplied under the Open Government Licence; the page requires both of these statements verbatim when the boundaries are reproduced, and both are in the site footer:
+   - "Source: Office for National Statistics licensed under the Open Government Licence v.3.0"
+   - "Contains OS data © Crown copyright and database right 2022"
+
 ## Could not verify (do not state these as fact anywhere on the site)
 
 - The exact column headers inside the EDM annual-return zips.

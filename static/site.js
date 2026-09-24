@@ -69,6 +69,9 @@
     var status = null;
 
     function matches(row) {
+      // An owning page (the map) can add a predicate of its own. It goes through here rather than
+      // setting row.hidden directly, so page filtering and the "See more" limit agree on one answer.
+      if (table.swtExternal && !table.swtExternal(row)) return false;
       for (var i in filters) {
         if (!filters[i].has(filterValue(row, Number(i)))) return false;
       }
@@ -91,7 +94,7 @@
         moreButton.setAttribute("aria-expanded", String(expanded));
       }
       if (status) {
-        var filtered = Object.keys(filters).length > 0;
+        var filtered = Object.keys(filters).length > 0 || !!table.swtExternal;
         status.textContent = filtered ? "Showing " + matching + " of " + rows.length + " rows" : "";
         status.hidden = !filtered;
       }
@@ -244,6 +247,7 @@
       status.hidden = true;
       (moreButton || table.closest(".table-scroll") || table).insertAdjacentElement("afterend", status);
     }
+    table.swtApply = apply;
     apply();
   }
 
@@ -308,7 +312,6 @@
       dots.forEach(function (dot, i) {
         var on = visible(dot);
         dot.style.display = on ? "" : "none";
-        if (mapRows[i]) mapRows[i].hidden = !on;
         if (on) {
           // Lit when this period holds a dry day spill the radar does not contest — but not when the
           // reader has switched that status off, or the map would still be lit by what they hid.
@@ -317,6 +320,10 @@
           shown++;
         }
       });
+      if (mapTable && mapTable.swtApply) {
+        mapTable.swtExternal = visible;   // rows carry the same data-p attributes as the dots
+        mapTable.swtApply();
+      }
       if (counter) {
         counter.textContent = shown + " overflow" + (shown === 1 ? "" : "s");
         counter.setAttribute("data-value", String(shown));
@@ -361,7 +368,7 @@
     }
 
     dots.forEach(function (dot, i) {
-      dot.addEventListener("click", function (e) { e.stopPropagation(); showPopup(i); });
+      dot.addEventListener("click", function (e) { e.stopPropagation(); clearRegion(); showPopup(i); });
     });
     // The map is a pointer view; the table under it is the keyboard and screen-reader equivalent,
     // so a row click opens the same panel rather than making 1,000+ dots part of the tab order.
@@ -371,8 +378,28 @@
         mapRoot.scrollIntoView({block: "nearest", behavior: "smooth"});
       });
     });
-    mapRoot.addEventListener("click", hidePopup);
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape") hidePopup(); });
+    // Clicking the map anywhere that is not a dot names the region under the pointer.
+    var readout = mapRoot.querySelector("[data-region-readout]");
+    var regions = Array.prototype.slice.call(svg.querySelectorAll(".region"));
+    function nameRegion(path) {
+      regions.forEach(function (r) { r.classList.toggle("is-on", r === path); });
+      if (!readout) return;
+      readout.querySelector("[data-region-label]").textContent = path.getAttribute("data-region");
+      readout.hidden = false;
+    }
+    function clearRegion() {
+      regions.forEach(function (r) { r.classList.remove("is-on"); });
+      if (readout) readout.hidden = true;
+    }
+    regions.forEach(function (path) {
+      path.addEventListener("click", function (e) { e.stopPropagation(); hidePopup(); nameRegion(path); });
+      path.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hidePopup(); nameRegion(path); }
+      });
+    });
+
+    mapRoot.addEventListener("click", function () { hidePopup(); clearRegion(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") { hidePopup(); clearRegion(); } });
     if (popup) popup.addEventListener("click", function (e) { e.stopPropagation(); });
     var closeButton = popup && popup.querySelector("[data-pop-close]");
     if (closeButton) closeButton.addEventListener("click", hidePopup);

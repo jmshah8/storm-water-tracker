@@ -110,10 +110,13 @@ strong { font-weight: 500; }
 .tile-note { display: block; margin-top: 6px; font-size: 13px; color: var(--muted); }
 
 /* tables */
+/* Long unbreakable strings (a command line, a measure id) must not widen the page on a phone. */
+code { overflow-wrap: anywhere; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; }
-thead th { background: var(--surface); font-size: 12px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); white-space: nowrap; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+thead th { background: var(--surface); font-size: 11px; font-weight: 400; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); vertical-align: bottom; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 th[data-sort] { cursor: pointer; }
 th[data-sort] button { all: unset; cursor: pointer; }
@@ -123,21 +126,22 @@ th[aria-sort="descending"] .th-trigger span::after, th[aria-sort="descending"] b
 /* Column menus: one per header, holding how to sort that column and — where the column repeats a
    small set of values — which of them to show. Built by site.js; without JS the header is plain text. */
 thead th.th-menu { position: relative; padding: 0; }
-.th-trigger { all: unset; display: block; cursor: pointer; padding: 10px 12px; width: 100%;
-  box-sizing: border-box; white-space: nowrap; }
+.th-trigger { all: unset; display: block; cursor: pointer; padding: 9px 10px; width: 100%;
+  box-sizing: border-box; }
 .th-trigger::after { content: " \25be"; opacity: 0.55; margin-left: 4px; }
 .th-trigger:hover, .th-trigger:focus-visible { color: var(--text); }
 th.num .th-trigger { text-align: right; }
 thead th.is-filtered .th-trigger { color: var(--flag); }
-.th-pop { position: absolute; z-index: 30; top: 100%; left: 0; min-width: 190px; max-width: 280px;
+.th-pop { position: absolute; z-index: 30; top: 100%; left: 0; width: max-content; max-width: 280px;
   background: var(--surface); border: 1px solid var(--rule); padding: 6px;
   text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--text);
   box-shadow: 0 10px 30px var(--black); }
 th.num .th-pop { left: auto; right: 0; }
-.th-sort, .th-clear { all: unset; display: block; cursor: pointer; padding: 6px 8px; width: 100%;
-  box-sizing: border-box; }
+.th-sort, .th-clear { all: unset; display: block; cursor: pointer; padding: 6px 10px; width: 100%;
+  box-sizing: border-box; white-space: nowrap; text-align: left; }
 .th-sort:hover, .th-clear:hover, .th-sort:focus-visible, .th-clear:focus-visible { background: var(--rule); }
 .th-clear { border-top: 1px solid var(--rule); color: var(--muted); }
+.th-pop:has(.th-pop-list) { min-width: 190px; }
 .th-pop-head { padding: 8px 8px 4px; color: var(--muted); border-top: 1px solid var(--rule); margin-top: 4px;
   font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
 .th-pop-list { max-height: 240px; overflow-y: auto; }
@@ -159,7 +163,12 @@ th.num .th-pop { left: auto; right: 0; }
 .linkish:hover { color: var(--text); text-decoration-color: var(--muted); }
 .map-holder { position: relative; margin: 8px auto 16px; max-width: 620px; }
 .map-svg { width: 100%; height: auto; display: block; }
-.dot { fill: var(--muted); fill-opacity: 0.55; cursor: pointer; }
+.region { fill: var(--muted); stroke: var(--faint); stroke-width: 0.7; cursor: pointer; }
+.region:hover, .region:focus-visible { stroke: var(--muted); stroke-width: 1.2; outline: none; }
+.region.is-on { stroke: var(--flag); stroke-width: 1.4; }
+.map-region { text-align: center; font-size: 13px; color: var(--text); margin: 4px 0 0;
+  text-transform: uppercase; letter-spacing: 0.08em; }
+.dot { fill: var(--muted); fill-opacity: 0.85; cursor: pointer; pointer-events: all; }
 .dot:hover, .dot:focus-visible { fill: var(--text); fill-opacity: 1; outline: none; }
 .dot--flag { fill: var(--flag); fill-opacity: 1; }
 .dot.is-open { fill: var(--white); fill-opacity: 1; stroke: var(--flag); stroke-width: 2; }
