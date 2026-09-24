@@ -564,7 +564,11 @@ def build(out_dir, hero_only=False):
     env.filters.update(dt=fmt_datetime, dts=fmt_datetime_seconds, d=fmt_date, thin=thin)
     frames = radar_frames(data)
     common = {"radar_frames": frames, "has_radar": bool(frames), "footer": footer, "site_url": site_url, "build_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-              "launch_utc": launch_utc, "launch_date": fmt_date(launch_day), "rule_version": meta["rule_version"],
+              "launch_utc": launch_utc, "launch_date": fmt_date(launch_day),
+              # From the classified rows, not from meta.json: meta.json is written once at first
+              # collection and was still saying dry-day-v1 after the rule moved to v2 and then v3,
+              # so the Data page documented a rule version no row had used since 18 Sep 2026.
+              "rule_version": ", ".join(sorted({r["rule_version"] for r in rows})) or meta["rule_version"],
               "ea_rule": EA_RULE, "n_overflows": len(overflows), "hero_svg": (ROOT / "static" /
                                                                                "england-overflows.svg").exists()}
 
