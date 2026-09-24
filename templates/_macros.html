@@ -8,23 +8,23 @@
 <div data-period-panel="{{ key }}" data-group="{{ group }}">
   <p class="period-note">{{ label }}{% if start <= end %}: {{ start|d }} to {{ end|d }}{% else %}: no complete UTC day since launch yet{% endif %}.</p>
   <div class="table-scroll">
-  <table data-sortable data-league="{{ key }}">
+  <table data-sortable data-filterable data-league="{{ key }}">
     <thead>
       <tr>
-        <th scope="col" data-sort><button type="button">Company</button></th>
-        <th scope="col" class="num" data-sort><button type="button">Overflows</button></th>
-        <th scope="col" class="num" data-sort><button type="button">Events</button></th>
-        <th scope="col" class="num" data-sort><button type="button">Dry day spills</button></th>
-        <th scope="col" class="num" data-sort><button type="button">Contested by radar</button></th>
-        <th scope="col" class="num" data-sort><button type="button">Dry day per 100 overflows</button></th>
-        <th scope="col" class="num" data-sort><button type="button">Radar agrees</button></th>
-        <th scope="col" data-sort><button type="button">Last dry day spill</button></th>
+        <th scope="col" data-col="text" data-filter>Company</th>
+        <th scope="col" class="num" data-col="num">Overflows</th>
+        <th scope="col" class="num" data-col="num">Events</th>
+        <th scope="col" class="num" data-col="num">Dry day spills</th>
+        <th scope="col" class="num" data-col="num">Contested by radar</th>
+        <th scope="col" class="num" data-col="num">Dry day per 100 overflows</th>
+        <th scope="col" class="num" data-col="num">Radar agrees</th>
+        <th scope="col" data-col="text">Last dry day spill</th>
       </tr>
     </thead>
     <tbody>
     {% for row in lg.rows %}
       <tr data-company="{{ row.slug }}">
-        <th scope="row"><a href="{{ root }}companies/{{ row.slug }}.html">{{ row.name }}</a></th>
+        <th scope="row" data-filter-value="{{ row.name }}"><a href="{{ root }}companies/{{ row.slug }}.html">{{ row.name }}</a></th>
         <td class="num" data-metric="overflows" data-value="{{ row.overflows }}">{{ row.overflows }}</td>
         <td class="num" data-metric="events" data-value="{{ row.events }}">{{ row.events }}</td>
         <td class="num flag" data-metric="dry" data-value="{{ row.dry }}">{{ row.dry }}</td>

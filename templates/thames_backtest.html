@@ -24,16 +24,16 @@
     <h2>By year</h2>
     <p class="period-note">Events counted by the UTC day they started. “Complete rain data” is the share of events that reached a dry day or not-dry verdict rather than waiting on readings. “Radar agrees” counts only flags where the Met Office radar archive covers the window. A flag is “contested” when radar recorded materially more rain than the gauge did (<a href="{{ root }}method.html#contested">what that means</a>); contested flags are counted in their own column, not in the dry day total.</p>
     <div class="table-scroll">
-    <table>
+    <table data-sortable data-filterable>
       <thead>
         <tr>
-          <th scope="col">Year</th>
-          <th scope="col" class="num">Events</th>
-          <th scope="col" class="num">Dry day spills</th>
-          <th scope="col" class="num">Contested by radar</th>
-          <th scope="col" class="num">Dry day per 100 overflows</th>
-          <th scope="col" class="num">Complete rain data</th>
-          <th scope="col" class="num">Radar agrees</th>
+          <th scope="col" data-col="text">Year</th>
+          <th scope="col" class="num" data-col="num">Events</th>
+          <th scope="col" class="num" data-col="num">Dry day spills</th>
+          <th scope="col" class="num" data-col="num">Contested by radar</th>
+          <th scope="col" class="num" data-col="num">Dry day per 100 overflows</th>
+          <th scope="col" class="num" data-col="num">Complete rain data</th>
+          <th scope="col" class="num" data-col="num">Radar agrees</th>
         </tr>
       </thead>
       <tbody>
@@ -67,13 +67,13 @@
   <section class="section">
     <h2>Month by month</h2>
     <div class="table-scroll">
-    <table>
+    <table data-sortable data-filterable>
       <thead>
         <tr>
-          <th scope="col">Month</th>
-          <th scope="col" class="num">Events</th>
-          <th scope="col" class="num">Dry day spills</th>
-          <th scope="col" class="num">Complete rain data</th>
+          <th scope="col" data-col="text">Month</th>
+          <th scope="col" class="num" data-col="num">Events</th>
+          <th scope="col" class="num" data-col="num">Dry day spills</th>
+          <th scope="col" class="num" data-col="num">Complete rain data</th>
         </tr>
       </thead>
       <tbody data-more>

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Map{% endblock %}
+{% block description %}Every storm overflow that has discharged since this record began, placed on a map of England and filterable by period, verdict and company.{% endblock %}
+{% block main %}
+<div class="wrap">
+  <div class="page-head">
+    <h1>Map</h1>
+    <p>Every overflow that has discharged since {{ launch_date }}, at the coordinates its company publishes. The same overflows are listed in the table below, so the map and the table always agree. Filter by period, by what the rainfall check concluded, and by company.</p>
+  </div>
+
+  <section class="map-filters" aria-label="Filters">
+    <div class="filter-row">
+      <span class="label">Period</span>
+      <div class="toggle" data-map-period role="group" aria-label="Period">
+        {% for key, label, start, end in periods %}
+        <button type="button" data-period="{{ key }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">{{ label }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="label">What the rainfall check found</span>
+      <div class="checks" data-map-filter="status">
+        {% for code, label, hint in statuses %}
+        <label title="{{ hint }}"><input type="checkbox" value="{{ code }}" checked>{{ label }}</label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="label">Company</span>
+      <div class="checks" data-map-filter="company">
+        {% for slug, name in companies %}
+        <label><input type="checkbox" value="{{ slug }}" checked>{{ name }}</label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <p class="map-count"><strong data-map-count data-value="{{ points|length }}">{{ points|length }} overflows</strong> shown. <button type="button" class="linkish" data-map-reset>Reset filters</button></p>
+  </section>
+
+  <div class="map-holder" data-map>
+    <svg viewBox="0 0 {{ width }} {{ height }}" class="map-svg" role="img"
+         aria-label="Storm overflows in England that have discharged since this record began, drawn at their published coordinates. The table below lists the same overflows and is the accessible equivalent of this map.">
+      {# One circle per entry in points, in the same order as the table rows below, so site.js pairs
+         the two by position. Each dot carries only what filtering needs: the company, and per period
+         "events:statuscodes". Everything the popup shows is read from the matching row. #}
+      {% for p in points %}{% set n = p.periods %}<circle class="dot" cx="{{ p.x }}" cy="{{ p.y }}" r="3.2" data-c="{{ p.company_slug }}"{% for key, label, start, end in periods %} data-p{{ loop.index0 }}="{{ n[key].n }}:{{ n[key].codes }}"{% endfor %}/>
+      {% endfor %}
+    </svg>
+
+    <div class="map-pop" data-map-popup hidden>
+      <button type="button" class="map-pop-close" data-pop-close aria-label="Close">×</button>
+      <h2 data-pop-name></h2>
+      <p class="map-pop-sub"><span data-pop-company></span> · <span data-pop-water></span></p>
+      <dl>
+        <div><dt>Discharges</dt><dd data-pop-events></dd></div>
+        <div><dt>Dry day spills</dt><dd class="flag" data-pop-dry></dd></div>
+        <div><dt>Contested by radar</dt><dd data-pop-contested></dd></div>
+        <div><dt>Last discharge</dt><dd data-pop-last></dd></div>
+      </dl>
+      <p><a data-pop-link href="{{ root }}index.html">All spills from this company →</a></p>
+    </div>
+  </div>
+
+  <p class="period-note">A lit dot is an overflow with at least one dry day spill in the selected period that the radar does not contest. Every other matching overflow is drawn in grey. Hover a dot to pick it out, click it for the detail. Overflows whose company publishes no coordinates cannot be placed and are not on this map; they are still counted everywhere else on the site.</p>
+
+  <h2 class="map-table-head">The same overflows, as a table</h2>
+  <div class="table-scroll">
+    <table data-filterable data-map-table data-sortable>
+      <thead>
+        <tr>
+          <th scope="col" data-col="text">Overflow</th>
+          <th scope="col" data-col="text" data-filter>Company</th>
+          <th scope="col" data-col="text">Receiving watercourse</th>
+          {% for key, label, start, end in periods %}
+          <th scope="col" class="num" data-col="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %}>Discharges</th>
+          <th scope="col" class="num" data-col="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %}>Dry day spills</th>
+          <th scope="col" class="num" data-col="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %}>Contested</th>
+          <th scope="col" data-col="text" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %}>Last discharge</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in points %}{% set n = p.periods %}
+        <tr data-c="{{ p.company_slug }}"{% for key, label, start, end in periods %} data-p{{ loop.index0 }}="{{ n[key].n }}:{{ n[key].codes }}"{% endfor %}>
+          <th scope="row">{{ p.name }}</th>
+          <td data-filter-value="{{ p.company_name }}"><a href="{{ root }}{{ p.href }}">{{ p.company_name }}</a></td>
+          <td>{{ p.watercourse or "—" }}</td>
+          {% for key, label, start, end in periods %}
+          <td class="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].n }}">{{ n[key].n }}</td>
+          <td class="num flag" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].dry }}">{{ n[key].dry }}</td>
+          <td class="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].contested }}">{{ n[key].contested or "—" }}</td>
+          <td data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-sort-value="{{ n[key].last }}">{{ n[key].last|d or "—" }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

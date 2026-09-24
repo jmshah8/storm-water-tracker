@@ -315,20 +315,30 @@ def valid_coords(o):
     return (lat, lon) if -90 <= lat <= 90 and -180 <= lon <= 180 else None
 
 
-def write_hero(overflows, rows, today, launch_day, path):
-    """England as dashes at overflow coordinates (01_SPEC.md §7.5, plan step 1.12). Returns (dashes, flagged)."""
-    points = {k: valid_coords(o) for k, o in overflows.items()}
-    points = {k: p for k, p in points.items() if p}
+def projector(points, width, height, pad):
+    """Equirectangular projection of overflow coordinates onto a width x height box, centred.
+
+    Used by both the hero image and the map page, so the two always draw England the same way.
+    """
     mean_lat = sum(p[0] for p in points.values()) / len(points)
     kx = math.cos(math.radians(mean_lat))
     xs = [p[1] * kx for p in points.values()]
     ys = [p[0] for p in points.values()]
-    scale = min((HERO_WIDTH - 2 * HERO_PAD) / (max(xs) - min(xs)), (HERO_HEIGHT - 2 * HERO_PAD) / (max(ys) - min(ys)))
-    off_x = (HERO_WIDTH - (max(xs) - min(xs)) * scale) / 2
-    off_y = (HERO_HEIGHT - (max(ys) - min(ys)) * scale) / 2
+    scale = min((width - 2 * pad) / (max(xs) - min(xs)), (height - 2 * pad) / (max(ys) - min(ys)))
+    off_x = (width - (max(xs) - min(xs)) * scale) / 2
+    off_y = (height - (max(ys) - min(ys)) * scale) / 2
 
     def project(lat, lon):
         return off_x + (lon * kx - min(xs)) * scale, off_y + (max(ys) - lat) * scale
+
+    return project
+
+
+def write_hero(overflows, rows, today, launch_day, path):
+    """England as dashes at overflow coordinates (01_SPEC.md §7.5, plan step 1.12). Returns (dashes, flagged)."""
+    points = {k: valid_coords(o) for k, o in overflows.items()}
+    points = {k: p for k, p in points.items() if p}
+    project = projector(points, HERO_WIDTH, HERO_HEIGHT, HERO_PAD)
 
     _, _, start, end = periods(today, launch_day)[0]
     # the same definition the tiles use: a flag the radar contradicts is not lit on the map
@@ -352,6 +362,69 @@ def write_hero(overflows, rows, today, launch_day, path):
     lines += ["</g>", "</svg>"]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return len(sample), len(flagged)
+
+
+# ---------------------------------------------------------------- map page
+
+MAP_WIDTH, MAP_HEIGHT, MAP_PAD = 900, 1100, 24
+# One letter per status, so an overflow's whole period can travel in a single attribute. The map page
+# and site.js share these codes; the legend on the page is generated from this list.
+STATUSES = [
+    ("d", "Dry day spill", "A flag the radar does not contradict, or cannot check."),
+    ("c", "Contested by radar", "Flagged on the gauge, but Met Office radar saw materially more rain."),
+    ("n", "Not a dry day", "Rain above the threshold in the 48-hour window."),
+    ("p", "Rain check pending", "Rainfall for the window has not arrived yet."),
+    ("i", "Insufficient rain data", "No usable gauge returned enough readings in time."),
+    ("g", "No gauge within 10 km", "Cannot be classified under this method."),
+]
+VERDICT_CODE = {"dry_day": "d", "not_dry": "n", "pending_rain_data": "p",
+                "insufficient_readings": "i", "no_gauge_within_10km": "g"}
+
+
+def status_code(row):
+    """The one letter that describes this event on the map. Contested outranks the bare flag."""
+    return "c" if contested(row) else VERDICT_CODE[row["verdict"]]
+
+
+def map_points(overflows, rows, period_list):
+    """One entry per overflow that discharged in any of the periods, sorted by overflow key.
+
+    Each entry carries, for every period, how many events it had, how many were dry day spills, how
+    many of those the radar contests, the set of status codes present, and the last event's day. The
+    map and the table below it are drawn from exactly the same entries.
+    """
+    points = {k: valid_coords(o) for k, o in overflows.items()}
+    points = {k: p for k, p in points.items() if p}
+    project = projector(points, MAP_WIDTH, MAP_HEIGHT, MAP_PAD)
+    by_key = defaultdict(list)
+    for r in rows:
+        if r["overflow_key"] in points:
+            by_key[r["overflow_key"]].append(r)
+
+    out = []
+    for key in sorted(by_key):
+        o = overflows[key]
+        entry = {"key": key, "company_slug": o["company_slug"],
+                 "company_name": COMPANY_NAMES.get(o["company_slug"], o["company_slug"]),
+                 "name": o["source_id"], "watercourse": o.get("receiving_watercourse", "").strip(),
+                 "href": f"companies/{o['company_slug']}.html", "periods": {}, "any": False}
+        x, y = project(*points[key])
+        entry["x"], entry["y"] = f"{x:.1f}", f"{y:.1f}"
+        for pkey, _label, start, end in period_list:
+            in_p = [r for r in by_key[key] if in_period(r, start, end)]
+            codes = "".join(sorted({status_code(r) for r in in_p}))
+            entry["periods"][pkey] = {
+                "n": len(in_p),
+                "dry": sum(1 for r in in_p if r["verdict"] == "dry_day" and not contested(r)),
+                "contested": sum(1 for r in in_p if contested(r)),
+                "codes": codes,
+                "last": max((r["day_utc"] for r in in_p), default=""),
+            }
+            if in_p:
+                entry["any"] = True
+        if entry["any"]:
+            out.append(entry)
+    return out
 
 
 # ---------------------------------------------------------------- build
@@ -546,6 +619,16 @@ def build(out_dir, hero_only=False):
     backtest = thames_backtest(rows, overflow_counts["thames"], launch_day, today)
     render("thames_backtest.html", "thames-backtest.html", active="companies", bt=backtest,
            radar_cover=radar_coverage(frames))
+
+    # The map covers the live record only. Thames Water's pre-launch history would otherwise bury
+    # every other company under four and a half years of dots it alone has, which would read as a
+    # map of England rather than what it is; that history has its own page and its own cautions.
+    points = map_points(overflows, [r for r in rows if r["day_utc"] >= launch_day.isoformat()], period_list)
+    if len(points) > 6000:
+        print(f"note: the map page now carries {len(points)} overflows; consider paging the table", file=sys.stderr)
+    render("map.html", "map.html", active="map", points=points, periods=period_list,
+           statuses=STATUSES, companies=COMPANIES,
+           width=MAP_WIDTH, height=MAP_HEIGHT)
 
     render("method.html", "method.html", active="method", n_events=len(rows),
            n_no_coords=sum(1 for o in overflows.values() if not o["latitude"] or not o["longitude"]),

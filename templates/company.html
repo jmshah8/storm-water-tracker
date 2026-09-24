@@ -15,15 +15,15 @@
     <h2>By month</h2>
     <p class="period-note">Events counted by the UTC day they started. “Complete rain data” is the share of the month's events with a dry day or not-dry verdict based on all 192 of 192 gauge readings. A flag is “contested” when Met Office radar recorded rain over the overflow that its gauge did not; contested flags are counted in their own column rather than in the dry day total, and each one is still published in full.</p>
     <div class="table-scroll">
-    <table>
+    <table data-sortable data-filterable>
       <thead>
         <tr>
-          <th scope="col">Month</th>
-          <th scope="col" class="num">Events</th>
-          <th scope="col" class="num">Dry day spills</th>
-          <th scope="col" class="num">Contested by radar</th>
-          <th scope="col" class="num">Dry day per 100 overflows</th>
-          <th scope="col" class="num">Complete rain data</th>
+          <th scope="col" data-col="text">Month</th>
+          <th scope="col" class="num" data-col="num">Events</th>
+          <th scope="col" class="num" data-col="num">Dry day spills</th>
+          <th scope="col" class="num" data-col="num">Contested by radar</th>
+          <th scope="col" class="num" data-col="num">Dry day per 100 overflows</th>
+          <th scope="col" class="num" data-col="num">Complete rain data</th>
         </tr>
       </thead>
       <tbody data-more>
