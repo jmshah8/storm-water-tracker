@@ -34,13 +34,50 @@ OFFLINE_FIELDS = ["overflow_key", "company_slug", "offline_start_utc", "offline_
 # Only what change detection needs, times cut to whole seconds: some feeds add random milliseconds to
 # unchanged times on every refresh, and LastUpdated is re-stamped on every refresh (GATE 1 decision).
 SNAPSHOT_FIELDS = ["status", "status_start_ms", "latest_event_start_ms", "latest_event_end_ms"]
+# South West Water's service answered "Retry after 60 sec" on 2026-09-24; wait that long when the
+# server does not name a figure itself. The cap keeps a poll inside the workflow's 10-minute timeout.
+RATE_LIMIT_WAIT_S = 60
+RATE_LIMIT_MAX_WAIT_S = 90
+# A whole poll may spend at most this long waiting out rate limits. Polls run in their own lane with
+# cancel-in-progress false, so a run that crawled towards the 10-minute job timeout would delay the
+# next poll behind it. Better to give up, exit 2 and let the next run ten minutes later try again.
+RATE_LIMIT_BUDGET_S = 180
+_rate_limit_spent = 0.0
 
 
 class FetchError(Exception):
-    pass
+    """A 4xx that means the dataset itself has moved — worth re-resolving the layer."""
+
+
+class RateLimited(Exception):
+    """A 429. The layer is fine; the server is asking us to slow down, so wait rather than re-resolve."""
+
+    def __init__(self, message, retry_after=None):
+        super().__init__(message)
+        self.retry_after = retry_after
 
 
 # ---------------------------------------------------------------- fetching
+
+def retry_after_seconds(response):
+    """The server's own Retry-After, when it sends one. Seconds only; these services do not send dates."""
+    try:
+        value = float(response.headers.get("Retry-After", ""))
+    except (TypeError, ValueError):
+        return None
+    return value if value > 0 else None
+
+
+def spend_rate_limit_wait(retry_after):
+    """Wait out a rate limit if this run can still afford to. False means the budget is gone."""
+    global _rate_limit_spent
+    wait = min(retry_after or RATE_LIMIT_WAIT_S, RATE_LIMIT_MAX_WAIT_S)
+    if _rate_limit_spent + wait > RATE_LIMIT_BUDGET_S:
+        return False
+    _rate_limit_spent += wait
+    time.sleep(wait)
+    return True
+
 
 def query_page(layer_url, offset, count):
     params = {"where": "1=1", "outFields": "*", "returnGeometry": "false", "f": "json",
@@ -49,18 +86,29 @@ def query_page(layer_url, offset, count):
     for attempt in range(3):
         try:
             r = requests.get(layer_url + "/query", params=params, timeout=60)
+            # 429 is the company's own ArcGIS quota, not a broken layer: it arrives both as an HTTP
+            # status and, on some of these services, as HTTP 200 carrying an error object. Either way
+            # the right answer is to wait the time the server asks for, not to re-resolve the dataset.
+            if r.status_code == 429:
+                raise RateLimited("HTTP 429", retry_after_seconds(r))
             if 400 <= r.status_code < 500:
                 raise FetchError(f"HTTP {r.status_code}")
             r.raise_for_status()
             data = r.json()
             if "error" in data:
-                code = data["error"].get("code", 0)
-                if 400 <= int(code) < 500:
+                code = int(data["error"].get("code", 0))
+                if code == 429:
+                    raise RateLimited(f"ArcGIS error {data['error']}", retry_after_seconds(r))
+                if 400 <= code < 500:
                     raise FetchError(f"ArcGIS error {data['error']}")
                 raise ValueError(f"ArcGIS error {data['error']}")
             return data
         except FetchError:
             raise
+        except RateLimited as e:
+            last = e
+            if attempt == 2 or not spend_rate_limit_wait(e.retry_after):
+                break
         except (requests.RequestException, ValueError) as e:
             last = e
             time.sleep(2 ** (attempt + 1))
