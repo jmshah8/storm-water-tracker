@@ -40,14 +40,7 @@
   </section>
 
   <div class="map-holder" data-map>
-    <div class="map-tools" data-map-tools>
-      <button type="button" data-zoom="in" aria-label="Zoom in" title="Zoom in">+</button>
-      <button type="button" data-zoom="out" aria-label="Zoom out" title="Zoom out" disabled>−</button>
-      <button type="button" data-zoom="reset" aria-label="Reset the view" title="Reset the view" disabled>⤾</button>
-      <button type="button" data-pan-toggle aria-pressed="false" aria-label="Drag to move the map"
-              title="Drag to move the map">✋</button>
-    </div>
-    <p class="map-zoom-level" data-zoom-level hidden></p>
+    <div class="map-figure">
     <svg viewBox="0 0 {{ width }} {{ height }}" class="map-svg" role="img"
          data-w="{{ width }}" data-h="{{ height }}"
          aria-label="Storm overflows in England that have discharged since this record began, drawn at their published coordinates. The table below lists the same overflows and is the accessible equivalent of this map.">
@@ -77,6 +70,18 @@
         <div><dt>Last discharge</dt><dd data-pop-last></dd></div>
       </dl>
       <p><a data-pop-link href="{{ root }}index.html">All spills from this company →</a></p>
+    </div>
+    </div>
+
+    {# Beside the map, never over it: at full zoom the map fills its whole box, and controls sitting
+       on top of it would hide the corner you had just zoomed into. #}
+    <div class="map-tools" data-map-tools>
+      <p class="map-zoom-level" data-zoom-level hidden></p>
+      <button type="button" data-zoom="in" aria-label="Zoom in" title="Zoom in">+</button>
+      <button type="button" data-zoom="out" aria-label="Zoom out" title="Zoom out" disabled>−</button>
+      <button type="button" data-zoom="reset" aria-label="Reset the view" title="Reset the view" disabled>⤾</button>
+      <button type="button" data-pan-toggle aria-pressed="false" aria-label="Drag to move the map"
+              title="Drag to move the map">✋</button>
     </div>
   </div>
 

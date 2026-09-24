@@ -358,8 +358,8 @@
       var href = cells[1] && cells[1].querySelector("a");
       popup.querySelector("[data-pop-link]").setAttribute("href", href ? href.getAttribute("href") : "#");
       popup.hidden = false;
-      // Keep the panel inside the map, whichever side of it the dot sits on.
-      var box = mapRoot.getBoundingClientRect();
+      // Keep the panel inside the map picture, whichever side of it the dot sits on.
+      var box = (mapRoot.querySelector(".map-figure") || mapRoot).getBoundingClientRect();
       var spot = dot.getBoundingClientRect();
       var left = spot.left - box.left + spot.width / 2;
       var top = spot.top - box.top + spot.height / 2;

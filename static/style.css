@@ -161,18 +161,20 @@ th.num .th-pop { left: auto; right: 0; }
 .linkish { all: unset; cursor: pointer; text-decoration: underline;
   text-decoration-color: var(--faint); text-underline-offset: 3px; }
 .linkish:hover { color: var(--text); text-decoration-color: var(--muted); }
-.map-holder { position: relative; margin: 8px auto 16px; max-width: 620px; }
+/* The map and its controls sit side by side, so the controls never cover the map itself. */
+.map-holder { position: relative; margin: 8px auto 16px; max-width: 664px;
+  display: flex; align-items: flex-start; gap: 12px; }
+.map-figure { position: relative; flex: 1 1 auto; min-width: 0; }
 .map-svg { width: 100%; height: auto; display: block; }
-.map-tools { position: absolute; z-index: 15; top: 0; right: 0; display: flex; flex-direction: column; gap: 6px; }
+.map-tools { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
 .map-tools button { all: unset; cursor: pointer; width: 32px; height: 32px; text-align: center;
   line-height: 32px; border: 1px solid var(--rule); background: var(--surface); color: var(--muted);
   font-size: 15px; }
 .map-tools button:hover:not(:disabled), .map-tools button:focus-visible { color: var(--text); border-color: var(--muted); }
 .map-tools button:disabled { opacity: 0.35; cursor: default; }
 .map-tools button[aria-pressed="true"] { color: var(--flag); border-color: var(--flag); }
-.map-zoom-level { position: absolute; z-index: 15; top: 0; left: 0; margin: 0; font-size: 12px;
-  color: var(--muted); font-variant-numeric: tabular-nums; background: var(--surface);
-  border: 1px solid var(--rule); padding: 3px 8px; }
+.map-zoom-level { margin: 0 0 2px; font-size: 11px; color: var(--muted); text-align: center;
+  font-variant-numeric: tabular-nums; }
 .map-svg:focus-visible { outline: 1px solid var(--muted); outline-offset: 2px; }
 /* With pan on, the pointer drags the map instead of selecting what is under it. */
 .map-holder.is-panning .map-svg { cursor: grab; touch-action: none; }
@@ -287,6 +289,10 @@ blockquote { margin: 0 0 16px; padding-left: 16px; border-left: 1px solid var(--
   .hero-text, .hero-aside { grid-column: 1; }
   .filter-row { grid-template-columns: 1fr; gap: 8px; }
   .map-pop { width: calc(100% - 16px); }
+  .map-holder { flex-direction: column; gap: 8px; }
+  .map-tools { flex-direction: row; align-self: flex-end; align-items: center; gap: 8px; }
+  .map-tools button { width: 40px; height: 40px; line-height: 40px; }
+  .map-zoom-level { margin: 0 4px 0 0; }
   .section { padding: 56px 0; }
   .tiles { grid-template-columns: repeat(2, 1fr); }
   .tile .value { font-size: 32px; }
