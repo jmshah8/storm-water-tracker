@@ -40,7 +40,16 @@
   </section>
 
   <div class="map-holder" data-map>
+    <div class="map-tools" data-map-tools>
+      <button type="button" data-zoom="in" aria-label="Zoom in" title="Zoom in">+</button>
+      <button type="button" data-zoom="out" aria-label="Zoom out" title="Zoom out" disabled>−</button>
+      <button type="button" data-zoom="reset" aria-label="Reset the view" title="Reset the view" disabled>⤾</button>
+      <button type="button" data-pan-toggle aria-pressed="false" aria-label="Drag to move the map"
+              title="Drag to move the map">✋</button>
+    </div>
+    <p class="map-zoom-level" data-zoom-level hidden></p>
     <svg viewBox="0 0 {{ width }} {{ height }}" class="map-svg" role="img"
+         data-w="{{ width }}" data-h="{{ height }}"
          aria-label="Storm overflows in England that have discharged since this record began, drawn at their published coordinates. The table below lists the same overflows and is the accessible equivalent of this map.">
       {# England's nine official regions (ONS, December 2022), drawn first so every dot sits on top
          of them. Same projection as the dots, so the two line up exactly. #}

@@ -163,7 +163,23 @@ th.num .th-pop { left: auto; right: 0; }
 .linkish:hover { color: var(--text); text-decoration-color: var(--muted); }
 .map-holder { position: relative; margin: 8px auto 16px; max-width: 620px; }
 .map-svg { width: 100%; height: auto; display: block; }
-.region { fill: var(--muted); stroke: var(--faint); stroke-width: 0.7; cursor: pointer; }
+.map-tools { position: absolute; z-index: 15; top: 0; right: 0; display: flex; flex-direction: column; gap: 6px; }
+.map-tools button { all: unset; cursor: pointer; width: 32px; height: 32px; text-align: center;
+  line-height: 32px; border: 1px solid var(--rule); background: var(--surface); color: var(--muted);
+  font-size: 15px; }
+.map-tools button:hover:not(:disabled), .map-tools button:focus-visible { color: var(--text); border-color: var(--muted); }
+.map-tools button:disabled { opacity: 0.35; cursor: default; }
+.map-tools button[aria-pressed="true"] { color: var(--flag); border-color: var(--flag); }
+.map-zoom-level { position: absolute; z-index: 15; top: 0; left: 0; margin: 0; font-size: 12px;
+  color: var(--muted); font-variant-numeric: tabular-nums; background: var(--surface);
+  border: 1px solid var(--rule); padding: 3px 8px; }
+.map-svg:focus-visible { outline: 1px solid var(--muted); outline-offset: 2px; }
+/* With pan on, the pointer drags the map instead of selecting what is under it. */
+.map-holder.is-panning .map-svg { cursor: grab; touch-action: none; }
+.map-holder.is-grabbing .map-svg { cursor: grabbing; }
+.map-holder.is-panning .dot, .map-holder.is-panning .region { cursor: inherit; }
+.region { fill: var(--muted); stroke: var(--faint); stroke-width: 0.7; cursor: pointer;
+  vector-effect: non-scaling-stroke; }
 .region:hover, .region:focus-visible { stroke: var(--muted); stroke-width: 1.2; outline: none; }
 .region.is-on { stroke: var(--flag); stroke-width: 1.4; }
 .map-region { text-align: center; font-size: 13px; color: var(--text); margin: 4px 0 0;

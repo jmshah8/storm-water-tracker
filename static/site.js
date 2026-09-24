@@ -437,6 +437,111 @@
         applyMap();
       });
     });
+    // ------------------------------------------------------------ zoom and pan
+    // The view is the SVG's own viewBox, so zooming costs nothing and the dots stay crisp.
+    // Panning is opt-in behind a button: with it off a click selects a dot or names a region,
+    // with it on a drag moves the map, which is what a pointer can usefully do at high zoom.
+    var W = parseFloat(svg.getAttribute("data-w")) || 900;
+    var H = parseFloat(svg.getAttribute("data-h")) || 1100;
+    var MAX_ZOOM = 8, STEP = 1.6;
+    var zoom = 1, cx = W / 2, cy = H / 2, panning = false;
+    var zoomIn = mapRoot.querySelector("[data-zoom='in']");
+    var zoomOut = mapRoot.querySelector("[data-zoom='out']");
+    var zoomReset = mapRoot.querySelector("[data-zoom='reset']");
+    var panToggle = mapRoot.querySelector("[data-pan-toggle]");
+    var levelOut = mapRoot.querySelector("[data-zoom-level]");
+
+    function clamp(v, lo, hi) { return lo > hi ? (lo + hi) / 2 : Math.min(Math.max(v, lo), hi); }
+
+    function view() {
+      var w = W / zoom, h = H / zoom;
+      cx = clamp(cx, w / 2, W - w / 2);
+      cy = clamp(cy, h / 2, H - h / 2);
+      svg.setAttribute("viewBox", (cx - w / 2).toFixed(2) + " " + (cy - h / 2).toFixed(2) +
+                       " " + w.toFixed(2) + " " + h.toFixed(2));
+      // Dots grow with the map, but only by the square root of the zoom, so that at 8x they are
+      // still dots and not blobs. Region hairlines are held at one pixel by non-scaling-stroke.
+      var r = (3.2 / Math.sqrt(zoom)).toFixed(2);
+      dots.forEach(function (d) { d.setAttribute("r", r); });
+      if (zoomIn) zoomIn.disabled = zoom >= MAX_ZOOM - 0.001;
+      if (zoomOut) zoomOut.disabled = zoom <= 1.001;
+      if (zoomReset) zoomReset.disabled = zoom <= 1.001;
+      if (levelOut) {
+        levelOut.hidden = zoom <= 1.001;
+        levelOut.textContent = zoom.toFixed(1).replace(/\.0$/, "") + "×";
+      }
+    }
+
+    function setZoom(next) {
+      zoom = clamp(next, 1, MAX_ZOOM);
+      if (zoom <= 1.001) { cx = W / 2; cy = H / 2; }
+      hidePopup();
+      view();
+    }
+
+    if (zoomIn) zoomIn.addEventListener("click", function (e) { e.stopPropagation(); setZoom(zoom * STEP); });
+    if (zoomOut) zoomOut.addEventListener("click", function (e) { e.stopPropagation(); setZoom(zoom / STEP); });
+    if (zoomReset) zoomReset.addEventListener("click", function (e) { e.stopPropagation(); setZoom(1); });
+
+    function setPanning(on) {
+      panning = on;
+      mapRoot.classList.toggle("is-panning", on);
+      if (panToggle) panToggle.setAttribute("aria-pressed", String(on));
+    }
+    if (panToggle) {
+      panToggle.addEventListener("click", function (e) { e.stopPropagation(); setPanning(!panning); });
+    }
+
+    var drag = null;
+    svg.addEventListener("pointerdown", function (e) {
+      if (!panning || e.button !== 0) return;
+      e.preventDefault();
+      drag = {x: e.clientX, y: e.clientY, cx: cx, cy: cy, moved: false};
+      svg.setPointerCapture(e.pointerId);
+      mapRoot.classList.add("is-grabbing");
+    });
+    svg.addEventListener("pointermove", function (e) {
+      if (!drag) return;
+      var box = svg.getBoundingClientRect();
+      // Client pixels to SVG units, so the map keeps pace with the pointer at any zoom.
+      var perPx = (W / zoom) / box.width;
+      var dx = (e.clientX - drag.x) * perPx, dy = (e.clientY - drag.y) * perPx;
+      if (Math.abs(e.clientX - drag.x) > 3 || Math.abs(e.clientY - drag.y) > 3) drag.moved = true;
+      cx = drag.cx - dx;
+      cy = drag.cy - dy;
+      view();
+    });
+    function endDrag(e) {
+      if (!drag) return;
+      var moved = drag.moved;
+      drag = null;
+      mapRoot.classList.remove("is-grabbing");
+      if (svg.hasPointerCapture && e && svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
+      // A drag must not also count as a click on whatever happened to be under the pointer.
+      if (moved) {
+        var swallow = function (ev) { ev.stopPropagation(); ev.preventDefault(); };
+        svg.addEventListener("click", swallow, {capture: true, once: true});
+        setTimeout(function () { svg.removeEventListener("click", swallow, {capture: true}); }, 0);
+      }
+    }
+    svg.addEventListener("pointerup", endDrag);
+    svg.addEventListener("pointercancel", endDrag);
+
+    // Arrow keys nudge the view when the map itself has focus, for anyone not using a pointer.
+    svg.setAttribute("tabindex", "0");
+    svg.addEventListener("keydown", function (e) {
+      var step = (W / zoom) / 8, moved = true;
+      if (e.key === "ArrowLeft") cx -= step;
+      else if (e.key === "ArrowRight") cx += step;
+      else if (e.key === "ArrowUp") cy -= step;
+      else if (e.key === "ArrowDown") cy += step;
+      else if (e.key === "+" || e.key === "=") setZoom(zoom * STEP);
+      else if (e.key === "-") setZoom(zoom / STEP);
+      else moved = false;
+      if (moved) { e.preventDefault(); view(); }
+    });
+
+    view();
     applyMap();
   }
 })();
