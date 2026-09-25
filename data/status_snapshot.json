@@ -7400,7 +7400,7 @@
   "anglian:AWS01357": {
     "latest_event_end_ms": 1765303298000,
     "latest_event_start_ms": 1765294701000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1765303308000
   },
   "anglian:AWS01358": {
@@ -19774,6 +19774,12 @@
     "latest_event_start_ms": null,
     "status": 0,
     "status_start_ms": 1782560460000
+  },
+  "severn-trent:SVT00317": {
+    "latest_event_end_ms": 1789726766000,
+    "latest_event_start_ms": 1789724340000,
+    "status": 0,
+    "status_start_ms": 1789726766000
   },
   "severn-trent:SVT00318": {
     "latest_event_end_ms": 1772957662000,
@@ -46605,7 +46611,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1790378145000
+    "status_start_ms": 1790379056000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1788016080000,
