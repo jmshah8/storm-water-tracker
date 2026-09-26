@@ -920,7 +920,7 @@
   "anglian:AWS00165": {
     "latest_event_end_ms": 1787819569000,
     "latest_event_start_ms": 1787819343000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1787820310000
   },
   "anglian:AWS00166": {
@@ -932,7 +932,7 @@
   "anglian:AWS00167": {
     "latest_event_end_ms": 1784865145000,
     "latest_event_start_ms": 1784864579000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1784865622000
   },
   "anglian:AWS00168": {
@@ -944,7 +944,7 @@
   "anglian:AWS00169": {
     "latest_event_end_ms": 1773590859000,
     "latest_event_start_ms": 1773590859000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1773590868000
   },
   "anglian:AWS00170": {
@@ -1964,7 +1964,7 @@
   "anglian:AWS00356": {
     "latest_event_end_ms": 1763150708000,
     "latest_event_start_ms": 1763129192000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1763150717000
   },
   "anglian:AWS00357": {
@@ -5450,7 +5450,7 @@
   "anglian:AWS00986": {
     "latest_event_end_ms": 1788500011000,
     "latest_event_start_ms": 1788499902000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1788500776000
   },
   "anglian:AWS00987": {
@@ -22668,10 +22668,10 @@
     "status_start_ms": 1788492895000
   },
   "severn-trent:SVT00849": {
-    "latest_event_end_ms": 1789818300000,
-    "latest_event_start_ms": 1789818098000,
-    "status": 0,
-    "status_start_ms": 1789818300000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1790426363000,
+    "status": 1,
+    "status_start_ms": 1790426363000
   },
   "severn-trent:SVT00850": {
     "latest_event_end_ms": null,
@@ -34188,8 +34188,8 @@
     "status_start_ms": 1778764371000
   },
   "south-west:SBB00284": {
-    "latest_event_end_ms": 1790427092000,
-    "latest_event_start_ms": 1790426971000,
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1790428047000,
     "status": -1,
     "status_start_ms": 1789541531000
   },
@@ -37320,8 +37320,8 @@
     "status_start_ms": 1787978620000
   },
   "south-west:SBB00834": {
-    "latest_event_end_ms": null,
-    "latest_event_start_ms": 1790425414000,
+    "latest_event_end_ms": 1790427684000,
+    "latest_event_start_ms": 1790427214000,
     "status": -1,
     "status_start_ms": 1790323044000
   },
@@ -46611,7 +46611,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1790426863000
+    "status_start_ms": 1790427688000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1788016080000,
