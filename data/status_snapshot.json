@@ -2372,7 +2372,7 @@
   "anglian:AWS00431": {
     "latest_event_end_ms": 1777983180000,
     "latest_event_start_ms": 1777983121000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1777983341000
   },
   "anglian:AWS00432": {
@@ -2498,7 +2498,7 @@
   "anglian:AWS00452": {
     "latest_event_end_ms": 1787863409000,
     "latest_event_start_ms": 1787842892000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1787863569000
   },
   "anglian:AWS00453": {
@@ -5316,10 +5316,10 @@
     "status_start_ms": 1763836233000
   },
   "anglian:AWS00962": {
-    "latest_event_end_ms": 1790427365000,
-    "latest_event_start_ms": 1790426782000,
-    "status": 0,
-    "status_start_ms": 1790427654000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1790428563000,
+    "status": 1,
+    "status_start_ms": 1790428623000
   },
   "anglian:AWS00963": {
     "latest_event_end_ms": 1763182117000,
@@ -5450,7 +5450,7 @@
   "anglian:AWS00986": {
     "latest_event_end_ms": 1788500011000,
     "latest_event_start_ms": 1788499902000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1788500776000
   },
   "anglian:AWS00987": {
@@ -6920,13 +6920,13 @@
   "anglian:AWS01265": {
     "latest_event_end_ms": 1788505631000,
     "latest_event_start_ms": 1788505350000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1788506124000
   },
   "anglian:AWS01266": {
     "latest_event_end_ms": 1789413344000,
     "latest_event_start_ms": 1789412515000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1789413349000
   },
   "anglian:AWS01267": {
@@ -8492,7 +8492,7 @@
   "anglian:AWS01552": {
     "latest_event_end_ms": 1787170871000,
     "latest_event_start_ms": 1787170036000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1787171320000
   },
   "anglian:AWS01553": {
@@ -34189,7 +34189,7 @@
   },
   "south-west:SBB00284": {
     "latest_event_end_ms": null,
-    "latest_event_start_ms": 1790429374000,
+    "latest_event_start_ms": 1790430450000,
     "status": -1,
     "status_start_ms": 1789541531000
   },
@@ -37320,7 +37320,7 @@
     "status_start_ms": 1787978620000
   },
   "south-west:SBB00834": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1790429315000,
     "latest_event_start_ms": 1790428654000,
     "status": -1,
     "status_start_ms": 1790323044000
@@ -46611,7 +46611,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1790429487000
+    "status_start_ms": 1790430363000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1788016080000,
@@ -69264,10 +69264,10 @@
     "status_start_ms": null
   },
   "wessex:WXW00824": {
-    "latest_event_end_ms": 1789770600000,
-    "latest_event_start_ms": 1789770360000,
+    "latest_event_end_ms": 1790429400000,
+    "latest_event_start_ms": 1790429160000,
     "status": 0,
-    "status_start_ms": 1789770600000
+    "status_start_ms": 1790429400000
   },
   "wessex:WXW00825": {
     "latest_event_end_ms": 1763134800000,
