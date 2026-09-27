@@ -62,7 +62,7 @@
   "anglian:AWS00012": {
     "latest_event_end_ms": 1789305646000,
     "latest_event_start_ms": 1789303425000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1789306207000
   },
   "anglian:AWS00013": {
@@ -2798,7 +2798,7 @@
   "anglian:AWS00505": {
     "latest_event_end_ms": 1788101636000,
     "latest_event_start_ms": 1788016654000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1788102059000
   },
   "anglian:AWS00506": {
@@ -7400,7 +7400,7 @@
   "anglian:AWS01357": {
     "latest_event_end_ms": 1765303298000,
     "latest_event_start_ms": 1765294701000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1765303308000
   },
   "anglian:AWS01358": {
@@ -34188,8 +34188,8 @@
     "status_start_ms": 1778764371000
   },
   "south-west:SBB00284": {
-    "latest_event_end_ms": 1790531908000,
-    "latest_event_start_ms": 1790531848000,
+    "latest_event_end_ms": 1790532502000,
+    "latest_event_start_ms": 1790532442000,
     "status": -1,
     "status_start_ms": 1789541531000
   },
@@ -36858,10 +36858,10 @@
     "status_start_ms": 1702907380000
   },
   "south-west:SBB00752": {
-    "latest_event_end_ms": 1790531221000,
-    "latest_event_start_ms": 1790530961000,
-    "status": 0,
-    "status_start_ms": 1790531221000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1790531891000,
+    "status": 1,
+    "status_start_ms": 1790531891000
   },
   "south-west:SBB00753": {
     "latest_event_end_ms": 1787818481000,
@@ -37320,8 +37320,8 @@
     "status_start_ms": 1787978620000
   },
   "south-west:SBB00834": {
-    "latest_event_end_ms": 1790525714000,
-    "latest_event_start_ms": 1790525624000,
+    "latest_event_end_ms": 1790532274000,
+    "latest_event_start_ms": 1790532154000,
     "status": -1,
     "status_start_ms": 1790323044000
   },
@@ -46611,7 +46611,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1790531209000
+    "status_start_ms": 1790532173000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1788016080000,
