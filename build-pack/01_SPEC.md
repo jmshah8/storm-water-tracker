@@ -291,7 +291,7 @@ Rules: these eleven values are the **only** colour literals allowed in `style.cs
 - *Verdict badge*: 12px, `text-transform: uppercase`, text exactly as §5.6; `dry_day` badge in `--flag` on `--surface`; all other badges in `--muted` on `--surface`; the §5.6 sub-line beneath in 14px `--muted`.
 - *Footer*: hairline, then three muted lines: data timestamps (last poll, last rain fetch, last classification), attribution lines (§2.1 and §2.2 in Phase 1; add §2.5's Met Office line in Phase 2), a link to About, and "A personal project. Not affiliated with any water company, regulator or campaign."
 
-7.7 **Copy rules.** Sentence case for headings except labels. British English. Numbers with thin-space thousands separators (`14 187`) in prose, plain in tables. Never the word "illegal" (see CLAUDE.md). Dates as `15 Sep 2026, 14:05 UTC`.
+7.7 **Copy rules.** Sentence case for headings except labels. British English. Numbers with comma thousands separators (`14,187`) in prose and tables alike (changed 29 Sep 2026 at Jaimin's request; quotes keep their original figures). Never the word "illegal" (see CLAUDE.md). Dates as `15 Sep 2026, 14:05 UTC`.
 
 7.8 **Accessibility.** Contrast ≥ 4.5:1 for all text on `--bg`/`--surface` (`--muted` on `--bg` ≈ 5.8:1; `--flag` on `--bg` ≈ 9.9:1; `--text` on `--bg` ≈ 17:1 — step 1.13 verifies these with a script, do not trust these figures). Focus rings visible (`outline: 2px solid var(--text)`). Tables have `<th scope>`; the hero SVG has `role="img"` and an `aria-label`.
 

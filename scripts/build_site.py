@@ -84,9 +84,9 @@ def fmt_date(value):
     return f"{d.day} {MONTHS[d.month - 1]} {d.year}"
 
 
-def thin(n):
-    """Thousands separated by a thin space, for prose (§7.7)."""
-    return f"{int(n):,}".replace(",", " ")
+def num(n):
+    """Thousands separated by commas, wherever a count is shown (Jaimin, 29 Sep 2026; replaces the §7.7 thin space)."""
+    return f"{int(n):,}"
 
 
 def duration_seconds(ev):
@@ -561,7 +561,7 @@ def build(out_dir, hero_only=False):
 
     env = Environment(loader=FileSystemLoader(str(ROOT / "templates")), autoescape=True, undefined=StrictUndefined,
                       trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
-    env.filters.update(dt=fmt_datetime, dts=fmt_datetime_seconds, d=fmt_date, thin=thin)
+    env.filters.update(dt=fmt_datetime, dts=fmt_datetime_seconds, d=fmt_date, num=num)
     frames = radar_frames(data)
     common = {"radar_frames": frames, "has_radar": bool(frames), "footer": footer, "site_url": site_url, "build_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
               "launch_utc": launch_utc, "launch_date": fmt_date(launch_day),

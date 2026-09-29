@@ -19,7 +19,8 @@
     </div>
 
     <div class="filter-row">
-      <span class="label">What the rainfall check found</span>
+      <div class="filter-head"><span class="label">What the rainfall check found</span>
+        <button type="button" class="linkish" data-map-all="status" hidden>Deselect all</button></div>
       <div class="checks" data-map-filter="status">
         {% for code, label, hint in statuses %}
         <label title="{{ hint }}"><input type="checkbox" value="{{ code }}" checked>{{ label }}</label>
@@ -28,7 +29,8 @@
     </div>
 
     <div class="filter-row">
-      <span class="label">Company</span>
+      <div class="filter-head"><span class="label">Company</span>
+        <button type="button" class="linkish" data-map-all="company" hidden>Deselect all</button></div>
       <div class="checks" data-map-filter="company">
         {% for slug, name in companies %}
         <label><input type="checkbox" value="{{ slug }}" checked>{{ name }}</label>
@@ -36,7 +38,7 @@
       </div>
     </div>
 
-    <p class="map-count"><strong data-map-count data-value="{{ points|length }}">{{ points|length }} overflows</strong> shown. <button type="button" class="linkish" data-map-reset>Reset filters</button></p>
+    <p class="map-count"><strong data-map-count data-value="{{ points|length }}">{{ points|length|num }} overflows</strong> shown. <button type="button" class="linkish" data-map-reset>Reset filters</button></p>
   </section>
 
   <div class="map-holder" data-map>
@@ -110,9 +112,9 @@
           <td data-filter-value="{{ p.company_name }}"><a href="{{ root }}{{ p.href }}">{{ p.company_name }}</a></td>
           <td>{{ p.watercourse or "—" }}</td>
           {% for key, label, start, end in periods %}
-          <td class="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].n }}">{{ n[key].n }}</td>
-          <td class="num flag" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].dry }}">{{ n[key].dry }}</td>
-          <td class="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].contested }}">{{ n[key].contested or "—" }}</td>
+          <td class="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].n }}">{{ n[key].n|num }}</td>
+          <td class="num flag" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].dry }}">{{ n[key].dry|num }}</td>
+          <td class="num" data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-value="{{ n[key].contested }}">{{ n[key].contested|num if n[key].contested else "—" }}</td>
           <td data-period-col="{{ key }}"{% if not loop.first %} hidden{% endif %} data-sort-value="{{ n[key].last }}">{{ n[key].last|d or "—" }}</td>
           {% endfor %}
         </tr>

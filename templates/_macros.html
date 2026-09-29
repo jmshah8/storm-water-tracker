@@ -25,12 +25,12 @@
     {% for row in lg.rows %}
       <tr data-company="{{ row.slug }}">
         <th scope="row" data-filter-value="{{ row.name }}"><a href="{{ root }}companies/{{ row.slug }}.html">{{ row.name }}</a></th>
-        <td class="num" data-metric="overflows" data-value="{{ row.overflows }}">{{ row.overflows }}</td>
-        <td class="num" data-metric="events" data-value="{{ row.events }}">{{ row.events }}</td>
-        <td class="num flag" data-metric="dry" data-value="{{ row.dry }}">{{ row.dry }}</td>
-        <td class="num" data-metric="contested" data-value="{{ row.contested }}">{{ row.contested or "—" }}</td>
+        <td class="num" data-metric="overflows" data-value="{{ row.overflows }}">{{ row.overflows|num }}</td>
+        <td class="num" data-metric="events" data-value="{{ row.events }}">{{ row.events|num }}</td>
+        <td class="num flag" data-metric="dry" data-value="{{ row.dry }}">{{ row.dry|num }}</td>
+        <td class="num" data-metric="contested" data-value="{{ row.contested }}">{{ row.contested|num if row.contested else "—" }}</td>
         <td class="num" data-metric="per100" data-value="{{ row.per100 }}">{{ row.per100 }}</td>
-        <td class="num" data-metric="radar_agrees" data-value="{{ row.radar_agrees }}" data-sort-value="{{ row.radar_share or -1 }}">{% if row.radar_checked %}{{ row.radar_agrees }} of {{ row.radar_checked }} ({{ row.radar_share }}%){% else %}—{% endif %}</td>
+        <td class="num" data-metric="radar_agrees" data-value="{{ row.radar_agrees }}" data-sort-value="{{ row.radar_share or -1 }}">{% if row.radar_checked %}{{ row.radar_agrees|num }} of {{ row.radar_checked|num }} ({{ row.radar_share }}%){% else %}—{% endif %}</td>
         <td data-metric="last_dry" data-value="{{ row.last_dry }}" data-sort-value="{{ row.last_dry }}">{{ row.last_dry_text or '—' }}</td>
       </tr>
     {% endfor %}
@@ -45,7 +45,7 @@
 {% if ev.verdict == 'dry_day' %}
 <span class="badge badge--dry">Dry day spill · EA definition</span>
 {% set missing = 192 - (ev.n_readings_present|int) %}
-<p class="subline">Potential breach; not confirmed. {% if missing == 0 %}Complete rain data (192 of 192 readings).{% elif ev.is_final == 'true' %}Rain data {{ ev.n_readings_present }} of 192 readings (final; {{ missing }} reading{{ 's' if missing != 1 }} never published).{% else %}Rain data {{ ev.n_readings_present }} of 192 readings (awaiting {{ missing }} reading{{ 's' if missing != 1 }}).{% endif %}</p>
+<p class="subline">Potential breach; not confirmed. {% if missing == 0 %}Complete rain data (192 of 192 readings).{% elif ev.is_final == 'true' %}Rain data {{ ev.n_readings_present|num }} of 192 readings (final; {{ missing }} reading{{ 's' if missing != 1 }} never published).{% else %}Rain data {{ ev.n_readings_present|num }} of 192 readings (awaiting {{ missing }} reading{{ 's' if missing != 1 }}).{% endif %}</p>
 {% elif ev.verdict == 'pending_rain_data' %}
 <span class="badge">Rain check pending</span>
 <p class="subline">Rainfall data for this window is not yet available from the Environment Agency.</p>

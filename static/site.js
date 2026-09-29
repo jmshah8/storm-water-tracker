@@ -7,6 +7,8 @@
   var SHOWN = 10;
 
   function text(el) { return (el.textContent || "").trim(); }
+  // Counts shown to a reader get thousands commas: 1,234.
+  function fmt(n) { return Number(n).toLocaleString("en-GB"); }
 
   // ---------------------------------------------------------------- "See more" on plain lists
   // A ul or ol marked data-more shows its first 10 items, then a "See more" button. Tables handle
@@ -20,7 +22,7 @@
     var expanded = false;
     function render() {
       items.slice(SHOWN).forEach(function (item) { item.hidden = !expanded; });
-      button.textContent = expanded ? "See less" : "See more (" + (items.length - SHOWN) + " more)";
+      button.textContent = expanded ? "See less" : "See more (" + fmt(items.length - SHOWN) + " more)";
       button.setAttribute("aria-expanded", String(expanded));
     }
     render();
@@ -90,12 +92,12 @@
       if (moreButton) {
         var hiddenByLimit = matching - shown;
         moreButton.hidden = hiddenByLimit <= 0 && !expanded;
-        moreButton.textContent = expanded ? "See less" : "See more (" + hiddenByLimit + " more)";
+        moreButton.textContent = expanded ? "See less" : "See more (" + fmt(hiddenByLimit) + " more)";
         moreButton.setAttribute("aria-expanded", String(expanded));
       }
       if (status) {
         var filtered = Object.keys(filters).length > 0 || !!table.swtExternal;
-        status.textContent = filtered ? "Showing " + matching + " of " + rows.length + " rows" : "";
+        status.textContent = filtered ? "Showing " + fmt(matching) + " of " + fmt(rows.length) + " rows" : "";
         status.hidden = !filtered;
       }
       table.dispatchEvent(new CustomEvent("swt:filtered", {bubbles: true}));
@@ -325,7 +327,7 @@
         mapTable.swtApply();
       }
       if (counter) {
-        counter.textContent = shown + " overflow" + (shown === 1 ? "" : "s");
+        counter.textContent = fmt(shown) + " overflow" + (shown === 1 ? "" : "s");
         counter.setAttribute("data-value", String(shown));
       }
       if (openIndex >= 0 && dots[openIndex] && dots[openIndex].style.display === "none") hidePopup();
@@ -421,20 +423,34 @@
       var on = boxes.filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
       return on.length === boxes.length ? null : new Set(on);
     }
+    // One button per filter group: "Deselect all" while every box is ticked, "Select all" otherwise.
+    var groupToggles = Array.prototype.slice.call(document.querySelectorAll("[data-map-all]"));
+    function filtersChanged() {
+      statuses = readSet("status");
+      companies = readSet("company");
+      groupToggles.forEach(function (b) {
+        var name = b.getAttribute("data-map-all");
+        b.textContent = readSet(name) === null ? "Deselect all" : "Select all";
+      });
+      hidePopup();
+      applyMap();
+    }
     document.querySelectorAll("[data-map-filter] input").forEach(function (box) {
-      box.addEventListener("change", function () {
-        statuses = readSet("status");
-        companies = readSet("company");
-        hidePopup();
-        applyMap();
+      box.addEventListener("change", filtersChanged);
+    });
+    groupToggles.forEach(function (b) {
+      b.hidden = false;
+      b.addEventListener("click", function () {
+        var name = b.getAttribute("data-map-all");
+        var tick = readSet(name) !== null;
+        document.querySelectorAll("[data-map-filter='" + name + "'] input").forEach(function (i) { i.checked = tick; });
+        filtersChanged();
       });
     });
     document.querySelectorAll("[data-map-reset]").forEach(function (b) {
       b.addEventListener("click", function () {
         document.querySelectorAll("[data-map-filter] input").forEach(function (i) { i.checked = true; });
-        statuses = companies = null;
-        hidePopup();
-        applyMap();
+        filtersChanged();
       });
     });
     // ------------------------------------------------------------ zoom and pan

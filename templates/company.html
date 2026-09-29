@@ -7,7 +7,7 @@
   <div class="page-head">
     <span class="label">Company</span>
     <h1>{{ name }}</h1>
-    <p><span data-metric="company-overflows" data-value="{{ overflows }}">{{ overflows|thin }}</span> storm overflows tracked. <a href="{{ root }}data/classification/companies/{{ slug }}.csv" download>Download every classified event for {{ name }} (CSV)</a>.{% if backtest_from %} <a href="{{ root }}thames-backtest.html">Back-test to April {{ backtest_from }}</a>.{% endif %}</p>
+    <p><span data-metric="company-overflows" data-value="{{ overflows }}">{{ overflows|num }}</span> storm overflows tracked. <a href="{{ root }}data/classification/companies/{{ slug }}.csv" download>Download every classified event for {{ name }} (CSV)</a>.{% if backtest_from %} <a href="{{ root }}thames-backtest.html">Back-test to April {{ backtest_from }}</a>.{% endif %}</p>
   </div>
 
   {% if page_no == 1 %}
@@ -30,9 +30,9 @@
       {% for row in monthly %}
         <tr>
           <th scope="row">{{ row.label }}</th>
-          <td class="num" data-value="{{ row.events }}">{{ row.events }}</td>
-          <td class="num flag" data-value="{{ row.dry }}">{{ row.dry }}</td>
-          <td class="num" data-value="{{ row.contested }}">{{ row.contested or "—" }}</td>
+          <td class="num" data-value="{{ row.events }}">{{ row.events|num }}</td>
+          <td class="num flag" data-value="{{ row.dry }}">{{ row.dry|num }}</td>
+          <td class="num" data-value="{{ row.contested }}">{{ row.contested|num if row.contested else "—" }}</td>
           <td class="num" data-value="{{ row.per100 }}">{{ row.per100 }}</td>
           <td class="num" data-value="{{ row.complete_share }}">{% if row.complete_share %}{{ row.complete_share }}%{% else %}—{% endif %}</td>
         </tr>
@@ -46,7 +46,7 @@
   <section class="section">
     <h2>Dry day spills</h2>
     {% if spills %}
-    <p class="period-note"><span data-value="{{ n_spills }}">{{ n_spills|thin }}</span> in total, newest first, including events recorded when this site began on {{ launch_date }}.</p>
+    <p class="period-note"><span data-value="{{ n_spills }}">{{ n_spills|num }}</span> in total, newest first, including events recorded when this site began on {{ launch_date }}.</p>
     {{ m.event_list(spills, root) }}
     {{ m.pager(page_no, n_pages, page_name) }}
     {% else %}

@@ -6,7 +6,7 @@
   <div class="page-head">
     <span class="label">Back-test</span>
     <h1>Thames Water since April 2022</h1>
-    <p>Thames Water publishes its own discharge alerts going back to 1 April 2022. This page runs that history through the <a href="{{ root }}method.html">same rule</a> as everything else on this site — no rainfall above 0.25 mm on the day a discharge started or the day before — and shows what comes out. <span data-metric="bt-events" data-value="{{ bt.n_events }}">{{ bt.n_events|thin }}</span> discharges, <span data-metric="bt-dry" data-value="{{ bt.n_dry }}">{{ bt.n_dry|thin }}</span> of them flagged as dry day spills, across {{ bt.n_overflows }} overflows.</p>
+    <p>Thames Water publishes its own discharge alerts going back to 1 April 2022. This page runs that history through the <a href="{{ root }}method.html">same rule</a> as everything else on this site — no rainfall above 0.25 mm on the day a discharge started or the day before — and shows what comes out. <span data-metric="bt-events" data-value="{{ bt.n_events }}">{{ bt.n_events|num }}</span> discharges, <span data-metric="bt-dry" data-value="{{ bt.n_dry }}">{{ bt.n_dry|num }}</span> of them flagged as dry day spills, across {{ bt.n_overflows|num }} overflows.</p>
   </div>
 
   <section class="section" style="padding-top: 0">
@@ -40,12 +40,12 @@
       {% for y in bt.years %}
         <tr>
           <th scope="row">{{ y.label }}{% if y.note %} <small class="muted">{{ y.note }}</small>{% endif %}</th>
-          <td class="num" data-metric="bt-year-events" data-key="{{ y.label }}" data-value="{{ y.events }}">{{ y.events|thin }}</td>
-          <td class="num" data-metric="bt-year-dry" data-key="{{ y.label }}" data-value="{{ y.dry }}">{{ y.dry|thin }}</td>
-          <td class="num" data-metric="bt-year-contested" data-key="{{ y.label }}" data-value="{{ y.contested }}">{{ y.contested|thin or "—" }}</td>
+          <td class="num" data-metric="bt-year-events" data-key="{{ y.label }}" data-value="{{ y.events }}">{{ y.events|num }}</td>
+          <td class="num" data-metric="bt-year-dry" data-key="{{ y.label }}" data-value="{{ y.dry }}">{{ y.dry|num }}</td>
+          <td class="num" data-metric="bt-year-contested" data-key="{{ y.label }}" data-value="{{ y.contested }}">{{ y.contested|num if y.contested else "—" }}</td>
           <td class="num" data-metric="bt-year-per100" data-key="{{ y.label }}" data-value="{{ y.per100 }}">{{ y.per100 }}</td>
           <td class="num" data-metric="bt-year-complete" data-key="{{ y.label }}" data-value="{{ y.complete_share }}">{% if y.complete_share %}{{ y.complete_share }}%{% else %}—{% endif %}</td>
-          <td class="num" data-metric="bt-year-radar" data-key="{{ y.label }}" data-value="{{ y.radar_share }}">{% if y.radar_checked %}{{ y.radar_share }}% <small class="muted">of {{ y.radar_checked|thin }}</small>{% else %}no radar{% endif %}</td>
+          <td class="num" data-metric="bt-year-radar" data-key="{{ y.label }}" data-value="{{ y.radar_share }}">{% if y.radar_checked %}{{ y.radar_share }}% <small class="muted">of {{ y.radar_checked|num }}</small>{% else %}no radar{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -55,10 +55,10 @@
 
   <section class="section">
     <h2>Dry day spills by month</h2>
-    <p class="period-note">One bar per month, {{ bt.first_month }} to {{ bt.last_month }}. The tallest bar is {{ bt.tallest|thin }} dry day spills. The rise through 2023 is mostly monitors being fitted, not the river getting worse.</p>
+    <p class="period-note">One bar per month, {{ bt.first_month }} to {{ bt.last_month }}. The tallest bar is {{ bt.tallest|num }} dry day spills. The rise through 2023 is mostly monitors being fitted, not the river getting worse.</p>
     <svg class="bars" viewBox="0 0 {{ bt.chart_w }} {{ bt.chart_h }}" role="img" width="100%" height="160"
          aria-label="Monthly dry day spills flagged for Thames Water, {{ bt.first_month }} to {{ bt.last_month }}. Tallest month {{ bt.tallest }}.">
-      {% for x in bt.monthly %}<rect x="{{ x.x }}" y="{{ x.y }}" width="{{ bt.bar_w }}" height="{{ x.h }}"><title>{{ x.label }}: {{ x.dry }} dry day spills of {{ x.events }} discharges</title></rect>
+      {% for x in bt.monthly %}<rect x="{{ x.x }}" y="{{ x.y }}" width="{{ bt.bar_w }}" height="{{ x.h }}"><title>{{ x.label }}: {{ x.dry|num }} dry day spills of {{ x.events|num }} discharges</title></rect>
       {% endfor %}
     </svg>
     <p class="muted">{{ bt.first_month }}<span style="float: right">{{ bt.last_month }}</span></p>
@@ -80,8 +80,8 @@
       {% for x in bt.monthly|reverse %}
         <tr>
           <th scope="row">{{ x.label }}</th>
-          <td class="num" data-metric="bt-month-events" data-key="{{ x.key }}" data-value="{{ x.events }}">{{ x.events|thin }}</td>
-          <td class="num" data-metric="bt-month-dry" data-key="{{ x.key }}" data-value="{{ x.dry }}">{{ x.dry|thin }}</td>
+          <td class="num" data-metric="bt-month-events" data-key="{{ x.key }}" data-value="{{ x.events }}">{{ x.events|num }}</td>
+          <td class="num" data-metric="bt-month-dry" data-key="{{ x.key }}" data-value="{{ x.dry }}">{{ x.dry|num }}</td>
           <td class="num">{% if x.complete_share %}{{ x.complete_share }}%{% else %}—{% endif %}</td>
         </tr>
       {% endfor %}

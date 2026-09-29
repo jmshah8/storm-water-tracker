@@ -155,6 +155,8 @@ th.num .th-pop { left: auto; right: 0; }
 .filter-row { display: grid; grid-template-columns: 200px 1fr; gap: 16px; align-items: baseline;
   padding-bottom: 16px; }
 .filter-row .label { padding-top: 6px; }
+.filter-head { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.filter-head .linkish { font-size: 13px; color: var(--muted); }
 .checks { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .checks label { display: flex; gap: 8px; align-items: baseline; font-size: 14px; cursor: pointer; }
 .map-count { font-size: 14px; color: var(--muted); margin: 4px 0 0; }
@@ -288,6 +290,7 @@ blockquote { margin: 0 0 16px; padding-left: 16px; border-left: 1px solid var(--
   .hero .wrap { grid-template-columns: 1fr; padding-bottom: 56px; }
   .hero-text, .hero-aside { grid-column: 1; }
   .filter-row { grid-template-columns: 1fr; gap: 8px; }
+  .filter-head { flex-direction: row; gap: 12px; align-items: baseline; }
   .map-pop { width: calc(100% - 16px); }
   .map-holder { flex-direction: column; gap: 8px; }
   .map-tools { flex-direction: row; align-self: flex-end; align-items: center; gap: 8px; }
