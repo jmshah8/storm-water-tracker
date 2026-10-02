@@ -11,6 +11,7 @@ Every link below was opened and the quote copied from the page on the date shown
    - `[method]` "Storm overflows should not spill on dry days, but there are exceptions."
    - `[method]` "rainfall data from local rain gauges as well as rainfall radar information"
    - `[method]` "treat them as a potential breach until we have confirmed through further investigation"
+   - `[method]` "some overflows will be located in very large catchments where water falling in a location far upstream of an overflow will take a significant amount of time to drain down or reach it." (added 2026-10-02 after a re-fetch; on the page the sentence opens "For example, some overflows…", following "Storm overflows should not spill on dry days, but there are exceptions.")
 
 2. `[method]` **Environment Agency, storm overflow spill data for 2024, published 27 March 2025** — https://www.gov.uk/government/news/environment-agency-storm-overflow-spill-data-for-2024 (fetched 2026-09-15)
    - `[method]` "since January, all day dry spills – no matter how small – are now classified as pollution incidents"
@@ -146,6 +147,19 @@ Every link below was opened and the quote copied from the page on the date shown
    - "Source: Office for National Statistics licensed under the Open Government Licence v.3.0"
    - "Contains OS data © Crown copyright and database right 2022"
 
+## Causes of dry day spills (added 2 October 2026)
+
+Used on the Method page ("Why a dry day spill happens") and in short notes on the Overview and Map pages. Neither source gives a figure for how many spills are deliberate; the site makes no claim about it.
+
+31. `[method]` **National Audit Office, "Regulating for investment and outcomes in the water sector", HC 853, 25 April 2025** — https://www.nao.org.uk/wp-content/uploads/2025/04/regulating-for-investment-and-outcomes-in-the-water-sector.pdf (fetched 2026-10-02 with curl, HTTP 200; text extracted from the PDF)
+   - `[method]` "Spills during dry weather are predominantly caused by blockages in the sewer network." (paragraph 1.12, printed page 16, PDF page 18)
+   - This report does **not** contain the 2015–2020 "blockages and asset failures" finding; that comes from a different NAO report, cited by the Commons Library below.
+
+32. `[method]` **House of Commons Library, CBP-10027 "Sewage discharges", 31 March 2026** — https://researchbriefings.files.parliament.uk/documents/CBP-10027/CBP-10027.pdf (fetched 2026-10-02; curl returned HTTP 403 three times with backoff because of a Cloudflare bot check, so the same URL was opened in Chrome with Jaimin's agreement and the PDF text extracted there)
+   - `[method]` "The National Audit Office (NAO) found that most breaches of environmental permits for sewage discharges happening in dry seasons were caused by blockages in the sewer system, and that the most common causes of pollution events between 2015 and 2020 were blockages and asset failures." (page 11, section 1)
+   - Footnote 14 to that sentence cites: National Audit Office, "Understanding storm overflows: Exploratory analysis of Environment Agency data", September 2021. That NAO report itself has not been fetched.
+   - The sentence before it describes blockages as caused by "pouring oils, fats and greases down the kitchen sink; flushing non-flushable materials such as wet wipes; and plastic pollution". The site paraphrases this and does not quote the wider sentence, which contains a word the site does not use.
+
 ## Could not verify (do not state these as fact anywhere on the site)
 
 - The exact column headers inside the EDM annual-return zips.
@@ -156,3 +170,4 @@ Every link below was opened and the quote copied from the page on the date shown
 - The Guardian's "England and Wales" scope for the 8,576 figure.
 - Whether a CLI draft/alias deploy is billed as a "Deploy Preview" (0 credits) — Netlify's table names Deploy Previews and branch deploys; step 1.15b measures it empirically before enabling daily alias deploys.
 - Whether `netlify sites:list --json` exposes `build_settings.repo_url` under exactly that key — CHECK 0.1 says what field it found; the requirement is simply that the project shows no linked repository.
+- The 2015–2020 "blockages and asset failures" finding as it appears in the NAO's own September 2021 report "Understanding storm overflows" (not fetched). The site states it only as reported by the House of Commons Library, CBP-10027.
