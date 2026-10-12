@@ -920,7 +920,7 @@
   "anglian:AWS00165": {
     "latest_event_end_ms": 1787819569000,
     "latest_event_start_ms": 1787819343000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1787820310000
   },
   "anglian:AWS00166": {
@@ -932,7 +932,7 @@
   "anglian:AWS00167": {
     "latest_event_end_ms": 1784865145000,
     "latest_event_start_ms": 1784864579000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1784865622000
   },
   "anglian:AWS00168": {
@@ -944,7 +944,7 @@
   "anglian:AWS00169": {
     "latest_event_end_ms": 1773590859000,
     "latest_event_start_ms": 1773590859000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1773590868000
   },
   "anglian:AWS00170": {
@@ -1178,7 +1178,7 @@
   "anglian:AWS00210": {
     "latest_event_end_ms": 1787837836000,
     "latest_event_start_ms": 1787820302000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1787838014000
   },
   "anglian:AWS00213": {
@@ -5270,7 +5270,7 @@
   "anglian:AWS00954": {
     "latest_event_end_ms": 1789427886000,
     "latest_event_start_ms": 1789427884000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1789428652000
   },
   "anglian:AWS00955": {
@@ -35376,10 +35376,10 @@
     "status_start_ms": 1790739750000
   },
   "south-west:SBB00490": {
-    "latest_event_end_ms": 1788861961000,
-    "latest_event_start_ms": 1788861451000,
-    "status": 0,
-    "status_start_ms": 1788861961000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1791771721000,
+    "status": 1,
+    "status_start_ms": 1791771721000
   },
   "south-west:SBB00491": {
     "latest_event_end_ms": 1786696600000,
@@ -35514,10 +35514,10 @@
     "status_start_ms": 1788083211000
   },
   "south-west:SBB00514": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1791771965000,
     "latest_event_start_ms": 1791767165000,
-    "status": 1,
-    "status_start_ms": 1791767165000
+    "status": 0,
+    "status_start_ms": 1791771965000
   },
   "south-west:SBB00515": {
     "latest_event_end_ms": 1790742281000,
@@ -38274,10 +38274,10 @@
     "status_start_ms": 1790778691000
   },
   "south-west:SBB01004": {
-    "latest_event_end_ms": 1791376940000,
-    "latest_event_start_ms": 1791376830000,
+    "latest_event_end_ms": 1791771450000,
+    "latest_event_start_ms": 1791770160000,
     "status": 0,
-    "status_start_ms": 1791376940000
+    "status_start_ms": 1791771450000
   },
   "south-west:SBB01006": {
     "latest_event_end_ms": 1776854670000,
