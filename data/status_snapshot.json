@@ -4940,7 +4940,7 @@
   "anglian:AWS00893": {
     "latest_event_end_ms": 1791508081000,
     "latest_event_start_ms": 1791508028000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1791508570000
   },
   "anglian:AWS00894": {
@@ -33690,10 +33690,10 @@
     "status_start_ms": 1771497588000
   },
   "south-west:SBB00199": {
-    "latest_event_end_ms": 1791791080000,
-    "latest_event_start_ms": 1791783220000,
-    "status": 0,
-    "status_start_ms": 1791791080000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1791828310000,
+    "status": 1,
+    "status_start_ms": 1791828310000
   },
   "south-west:SBB00200": {
     "latest_event_end_ms": 1789574451000,
@@ -46611,7 +46611,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1791827175000
+    "status_start_ms": 1791828084000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1788016080000,
