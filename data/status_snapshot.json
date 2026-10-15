@@ -8252,7 +8252,7 @@
   "anglian:AWS01511": {
     "latest_event_end_ms": 1788037497000,
     "latest_event_start_ms": 1788037496000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1788038151000
   },
   "anglian:AWS01512": {
@@ -11304,10 +11304,10 @@
     "status_start_ms": 1790150039000
   },
   "northumbrian:NWL00452": {
-    "latest_event_end_ms": 1788129151000,
-    "latest_event_start_ms": 1788126866000,
+    "latest_event_end_ms": 1792062776000,
+    "latest_event_start_ms": 1792062561000,
     "status": 0,
-    "status_start_ms": 1788129151000
+    "status_start_ms": 1792062776000
   },
   "northumbrian:NWL00453": {
     "latest_event_end_ms": 1788110279000,
@@ -17046,10 +17046,10 @@
     "status_start_ms": 1791895082000
   },
   "northumbrian:NWL01419": {
-    "latest_event_end_ms": 1791878580000,
-    "latest_event_start_ms": 1791875881000,
-    "status": 0,
-    "status_start_ms": 1791878580000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1792062770000,
+    "status": 1,
+    "status_start_ms": 1792062770000
   },
   "northumbrian:NWL01420(1)": {
     "latest_event_end_ms": 1790775966000,
@@ -33822,10 +33822,10 @@
     "status_start_ms": 1787802421000
   },
   "south-west:SBB00222": {
-    "latest_event_end_ms": 1792055645000,
-    "latest_event_start_ms": 1792055525000,
+    "latest_event_end_ms": 1792063325000,
+    "latest_event_start_ms": 1792063205000,
     "status": 0,
-    "status_start_ms": 1792055645000
+    "status_start_ms": 1792063325000
   },
   "south-west:SBB00223": {
     "latest_event_end_ms": 1774257050000,
@@ -46623,7 +46623,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1792062943000
+    "status_start_ms": 1792063850000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1788016080000,
@@ -68918,8 +68918,8 @@
   "wessex:WXW00759": {
     "latest_event_end_ms": 1771492260000,
     "latest_event_start_ms": 1771451940000,
-    "status": -1,
-    "status_start_ms": null
+    "status": 0,
+    "status_start_ms": 1771492260000
   },
   "wessex:WXW00760": {
     "latest_event_end_ms": 1782148920000,
