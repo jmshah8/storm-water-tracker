@@ -920,7 +920,7 @@
   "anglian:AWS00165": {
     "latest_event_end_ms": 1787819569000,
     "latest_event_start_ms": 1787819343000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1787820310000
   },
   "anglian:AWS00166": {
@@ -932,7 +932,7 @@
   "anglian:AWS00167": {
     "latest_event_end_ms": 1784865145000,
     "latest_event_start_ms": 1784864579000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1784865622000
   },
   "anglian:AWS00168": {
@@ -944,7 +944,7 @@
   "anglian:AWS00169": {
     "latest_event_end_ms": 1773590859000,
     "latest_event_start_ms": 1773590859000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1773590868000
   },
   "anglian:AWS00170": {
@@ -3164,7 +3164,7 @@
   "anglian:AWS00570": {
     "latest_event_end_ms": 1787840953000,
     "latest_event_start_ms": 1787835677000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1787841079000
   },
   "anglian:AWS00571": {
@@ -6768,10 +6768,10 @@
     "status_start_ms": 1787841976000
   },
   "anglian:AWS01231": {
-    "latest_event_end_ms": 1787567401000,
-    "latest_event_start_ms": 1787562960000,
-    "status": 0,
-    "status_start_ms": 1787567422000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1792045801000,
+    "status": 1,
+    "status_start_ms": 1792045821000
   },
   "anglian:AWS01232": {
     "latest_event_end_ms": 1791564360000,
@@ -9848,8 +9848,8 @@
   "northumbrian:NWL00205": {
     "latest_event_end_ms": 1780415759000,
     "latest_event_start_ms": 1780415279000,
-    "status": 0,
-    "status_start_ms": 1780415759000
+    "status": -1,
+    "status_start_ms": 1792047600000
   },
   "northumbrian:NWL00206": {
     "latest_event_end_ms": 1787654572000,
@@ -37050,10 +37050,10 @@
     "status_start_ms": 1790741010000
   },
   "south-west:SBB00787": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1792048565000,
     "latest_event_start_ms": 1792048445000,
-    "status": 1,
-    "status_start_ms": 1792048445000
+    "status": 0,
+    "status_start_ms": 1792048565000
   },
   "south-west:SBB00788": {
     "latest_event_end_ms": 1779438551000,
@@ -69584,8 +69584,8 @@
   "wessex:WXW00876": {
     "latest_event_end_ms": 1780983060000,
     "latest_event_start_ms": 1780982940000,
-    "status": 0,
-    "status_start_ms": 1780983060000
+    "status": -1,
+    "status_start_ms": null
   },
   "wessex:WXW00877": {
     "latest_event_end_ms": 1790797740000,
