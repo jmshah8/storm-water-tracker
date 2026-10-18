@@ -5468,7 +5468,7 @@
   "anglian:AWS00989": {
     "latest_event_end_ms": 1781602617000,
     "latest_event_start_ms": 1781602560000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1781602699000
   },
   "anglian:AWS00990": {
@@ -7352,7 +7352,7 @@
   "anglian:AWS01348": {
     "latest_event_end_ms": 1788066117000,
     "latest_event_start_ms": 1788026578000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1788066922000
   },
   "anglian:AWS01349": {
@@ -18390,10 +18390,10 @@
     "status_start_ms": 1787826978000
   },
   "severn-trent:SVT00063": {
-    "latest_event_end_ms": 1792151308000,
-    "latest_event_start_ms": 1792150316000,
-    "status": 0,
-    "status_start_ms": 1792151308000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1792281293000,
+    "status": 1,
+    "status_start_ms": 1792281293000
   },
   "severn-trent:SVT00064": {
     "latest_event_end_ms": 1789280100000,
@@ -28218,10 +28218,10 @@
     "status_start_ms": 1764070200000
   },
   "severn-trent:SVT01876": {
-    "latest_event_end_ms": 1792279106000,
-    "latest_event_start_ms": 1792278815000,
+    "latest_event_end_ms": 1792281506000,
+    "latest_event_start_ms": 1792281214000,
     "status": 0,
-    "status_start_ms": 1792279106000
+    "status_start_ms": 1792281506000
   },
   "severn-trent:SVT01877": {
     "latest_event_end_ms": 1779932129000,
@@ -34080,10 +34080,10 @@
     "status_start_ms": 1780344210000
   },
   "south-west:SBB00266": {
-    "latest_event_end_ms": 1792280525000,
-    "latest_event_start_ms": 1792280405000,
+    "latest_event_end_ms": 1792282565000,
+    "latest_event_start_ms": 1792282445000,
     "status": 0,
-    "status_start_ms": 1792280525000
+    "status_start_ms": 1792282565000
   },
   "south-west:SBB00267": {
     "latest_event_end_ms": 1790718965000,
@@ -46623,7 +46623,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1792281717000
+    "status_start_ms": 1792282542000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1788016080000,
