@@ -4730,7 +4730,7 @@
   "anglian:AWS00856": {
     "latest_event_end_ms": 1792887859000,
     "latest_event_start_ms": 1792851999000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1792888289000
   },
   "anglian:AWS00857": {
@@ -7334,7 +7334,7 @@
   "anglian:AWS01343": {
     "latest_event_end_ms": 1792872809000,
     "latest_event_start_ms": 1792872652000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1792872939000
   },
   "anglian:AWS01344": {
@@ -7400,7 +7400,7 @@
   "anglian:AWS01357": {
     "latest_event_end_ms": 1765303298000,
     "latest_event_start_ms": 1765294701000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1765303308000
   },
   "anglian:AWS01358": {
@@ -8312,13 +8312,13 @@
   "anglian:AWS01521": {
     "latest_event_end_ms": 1792893891000,
     "latest_event_start_ms": 1792893888000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1792894551000
   },
   "anglian:AWS01522": {
     "latest_event_end_ms": 1790435011000,
     "latest_event_start_ms": 1790434998000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1790435775000
   },
   "anglian:AWS01523": {
@@ -36732,10 +36732,10 @@
     "status_start_ms": 1793322740000
   },
   "south-west:SBB00725": {
-    "latest_event_end_ms": 1793149200000,
-    "latest_event_start_ms": 1793148860000,
-    "status": 0,
-    "status_start_ms": 1793149200000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1793354610000,
+    "status": 1,
+    "status_start_ms": 1793354610000
   },
   "south-west:SBB00726": {
     "latest_event_end_ms": 1793042381000,
@@ -36948,10 +36948,10 @@
     "status_start_ms": 1793328523000
   },
   "south-west:SBB00762": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1793354523000,
     "latest_event_start_ms": 1793354302000,
-    "status": 1,
-    "status_start_ms": 1793354302000
+    "status": 0,
+    "status_start_ms": 1793354523000
   },
   "south-west:SBB00763": {
     "latest_event_end_ms": 1792762431000,
@@ -37548,10 +37548,10 @@
     "status_start_ms": 1783953130000
   },
   "south-west:SBB00868": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1793354162000,
     "latest_event_start_ms": 1793353322000,
-    "status": 1,
-    "status_start_ms": 1793353322000
+    "status": 0,
+    "status_start_ms": 1793354162000
   },
   "south-west:SBB00869": {
     "latest_event_end_ms": 1793132565000,
@@ -38418,10 +38418,10 @@
     "status_start_ms": 1792850790000
   },
   "south-west:SBB01026": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1793354571000,
     "latest_event_start_ms": 1793354161000,
-    "status": 1,
-    "status_start_ms": 1793354161000
+    "status": 0,
+    "status_start_ms": 1793354571000
   },
   "south-west:SBB01027": {
     "latest_event_end_ms": 1771439191000,
@@ -46677,7 +46677,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1793353579000
+    "status_start_ms": 1793354459000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1792876200000,
@@ -66318,10 +66318,10 @@
     "status_start_ms": null
   },
   "wessex:WXW00307": {
-    "latest_event_end_ms": 1793076840000,
-    "latest_event_start_ms": 1793075760000,
+    "latest_event_end_ms": 1793353440000,
+    "latest_event_start_ms": 1793353320000,
     "status": 0,
-    "status_start_ms": 1793076840000
+    "status_start_ms": 1793353440000
   },
   "wessex:WXW00308": {
     "latest_event_end_ms": 1793138940000,
@@ -67862,8 +67862,8 @@
   "wessex:WXW00570": {
     "latest_event_end_ms": 1771502640000,
     "latest_event_start_ms": 1771499400000,
-    "status": 0,
-    "status_start_ms": 1771502640000
+    "status": -1,
+    "status_start_ms": null
   },
   "wessex:WXW00571": {
     "latest_event_end_ms": 1778073960000,
@@ -71186,8 +71186,8 @@
   "wessex:WXW01136": {
     "latest_event_end_ms": 1772427840000,
     "latest_event_start_ms": 1772427720000,
-    "status": -1,
-    "status_start_ms": null
+    "status": 0,
+    "status_start_ms": 1772427840000
   },
   "wessex:WXW01137": {
     "latest_event_end_ms": 1792883580000,
