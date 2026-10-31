@@ -1100,7 +1100,7 @@
   "anglian:AWS00197": {
     "latest_event_end_ms": 1770642373000,
     "latest_event_start_ms": 1770642257000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1770642394000
   },
   "anglian:AWS00198": {
@@ -3338,7 +3338,7 @@
   "anglian:AWS00603": {
     "latest_event_end_ms": 1789982473000,
     "latest_event_start_ms": 1789981757000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1789983038000
   },
   "anglian:AWS00604": {
@@ -5120,7 +5120,7 @@
   "anglian:AWS00924": {
     "latest_event_end_ms": 1790974229000,
     "latest_event_start_ms": 1790973955000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1790974230000
   },
   "anglian:AWS00925": {
@@ -5138,7 +5138,7 @@
   "anglian:AWS00927": {
     "latest_event_end_ms": 1793092028000,
     "latest_event_start_ms": 1793088198000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1793092525000
   },
   "anglian:AWS00928": {
@@ -7400,7 +7400,7 @@
   "anglian:AWS01357": {
     "latest_event_end_ms": 1765303298000,
     "latest_event_start_ms": 1765294701000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1765303308000
   },
   "anglian:AWS01358": {
@@ -9030,10 +9030,10 @@
     "status_start_ms": 1774016867000
   },
   "northumbrian:NWL00072": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1793406176000,
     "latest_event_start_ms": 1793365920000,
-    "status": 1,
-    "status_start_ms": 1793365920000
+    "status": 0,
+    "status_start_ms": 1793406176000
   },
   "northumbrian:NWL00073": {
     "latest_event_end_ms": 1792396735000,
@@ -9566,8 +9566,8 @@
   "northumbrian:NWL00161": {
     "latest_event_end_ms": 1793036204000,
     "latest_event_start_ms": 1793035522000,
-    "status": -1,
-    "status_start_ms": 1793405790000
+    "status": 0,
+    "status_start_ms": 1793036204000
   },
   "northumbrian:NWL00162": {
     "latest_event_end_ms": 1792761959000,
@@ -34752,10 +34752,10 @@
     "status_start_ms": 1792849390000
   },
   "south-west:SBB00376": {
-    "latest_event_end_ms": 1793364431000,
-    "latest_event_start_ms": 1793364241000,
-    "status": 0,
-    "status_start_ms": 1793364431000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1793407541000,
+    "status": 1,
+    "status_start_ms": 1793407541000
   },
   "south-west:SBB00377": {
     "latest_event_end_ms": 1793003641000,
@@ -46677,7 +46677,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1793406664000
+    "status_start_ms": 1793407557000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1792876200000,
@@ -50898,10 +50898,10 @@
     "status_start_ms": 1792906920000
   },
   "united-utilities:UUP00132": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1793405790000,
     "latest_event_start_ms": 1793402410000,
-    "status": 1,
-    "status_start_ms": 1793402410000
+    "status": 0,
+    "status_start_ms": 1793405790000
   },
   "united-utilities:UUP00133": {
     "latest_event_end_ms": 1792776622000,
@@ -51483,7 +51483,7 @@
     "latest_event_end_ms": 1792899960000,
     "latest_event_start_ms": 1792851120000,
     "status": 0,
-    "status_start_ms": 1793404440000
+    "status_start_ms": 1793405400000
   },
   "united-utilities:UUP00231": {
     "latest_event_end_ms": 1792873639000,
@@ -51663,7 +51663,7 @@
     "latest_event_end_ms": 1793403701000,
     "latest_event_start_ms": 1793403328000,
     "status": 0,
-    "status_start_ms": 1793404396000
+    "status_start_ms": 1793405725000
   },
   "united-utilities:UUP00261": {
     "latest_event_end_ms": 1777005470000,
@@ -53283,7 +53283,7 @@
     "latest_event_end_ms": 1793205720000,
     "latest_event_start_ms": 1793205480000,
     "status": 0,
-    "status_start_ms": 1793404200000
+    "status_start_ms": 1793405280000
   },
   "united-utilities:UUP00535": {
     "latest_event_end_ms": null,
@@ -54288,10 +54288,10 @@
     "status_start_ms": 1792777937000
   },
   "united-utilities:UUP00704": {
-    "latest_event_end_ms": 1793403480000,
-    "latest_event_start_ms": 1793403240000,
+    "latest_event_end_ms": 1793405400000,
+    "latest_event_start_ms": 1793405160000,
     "status": 0,
-    "status_start_ms": 1793403480000
+    "status_start_ms": 1793405400000
   },
   "united-utilities:UUP00705": {
     "latest_event_end_ms": 1756726080000,
@@ -54543,7 +54543,7 @@
     "latest_event_end_ms": 1793184240000,
     "latest_event_start_ms": 1793183520000,
     "status": 0,
-    "status_start_ms": 1793403840000
+    "status_start_ms": 1793405640000
   },
   "united-utilities:UUP00747": {
     "latest_event_end_ms": 1792867440000,
@@ -55287,7 +55287,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1793403000000
+    "status_start_ms": 1793403840000
   },
   "united-utilities:UUP00871": {
     "latest_event_end_ms": 1793171520000,
@@ -56103,7 +56103,7 @@
     "latest_event_end_ms": 1793028960000,
     "latest_event_start_ms": 1793012520000,
     "status": 0,
-    "status_start_ms": 1793404560000
+    "status_start_ms": 1793405640000
   },
   "united-utilities:UUP01009": {
     "latest_event_end_ms": 1792911181000,
@@ -56283,7 +56283,7 @@
     "latest_event_end_ms": 1783909920000,
     "latest_event_start_ms": 1783909800000,
     "status": 0,
-    "status_start_ms": 1793403840000
+    "status_start_ms": 1793404800000
   },
   "united-utilities:UUP01039": {
     "latest_event_end_ms": 1792757280000,
@@ -60681,7 +60681,7 @@
     "latest_event_end_ms": 1792858258000,
     "latest_event_start_ms": 1792857840000,
     "status": 0,
-    "status_start_ms": 1793403720000
+    "status_start_ms": 1793405520000
   },
   "united-utilities:UUP01780": {
     "latest_event_end_ms": 1773840000000,
@@ -60789,7 +60789,7 @@
     "latest_event_end_ms": 1792970880000,
     "latest_event_start_ms": 1792970640000,
     "status": 0,
-    "status_start_ms": 1793404440000
+    "status_start_ms": 1793405400000
   },
   "united-utilities:UUP01798": {
     "latest_event_end_ms": 1785864600000,
@@ -60798,10 +60798,10 @@
     "status_start_ms": 1793399160000
   },
   "united-utilities:UUP01799": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1793404320000,
     "latest_event_start_ms": 1793403600000,
-    "status": 1,
-    "status_start_ms": 1793403600000
+    "status": 0,
+    "status_start_ms": 1793404320000
   },
   "united-utilities:UUP01800": {
     "latest_event_end_ms": 1791541680000,
@@ -61122,10 +61122,10 @@
     "status_start_ms": 1792881960000
   },
   "united-utilities:UUP01854": {
-    "latest_event_end_ms": 1793404640000,
-    "latest_event_start_ms": 1793403104000,
-    "status": 0,
-    "status_start_ms": 1793404640000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1793404943000,
+    "status": 1,
+    "status_start_ms": 1793404943000
   },
   "united-utilities:UUP01855": {
     "latest_event_end_ms": 1754233357000,
@@ -61671,7 +61671,7 @@
     "latest_event_end_ms": 1792865760000,
     "latest_event_start_ms": 1792865640000,
     "status": 0,
-    "status_start_ms": 1793404560000
+    "status_start_ms": 1793405520000
   },
   "united-utilities:UUP01947": {
     "latest_event_end_ms": 1792915320000,
@@ -62325,7 +62325,7 @@
     "latest_event_end_ms": 1771061280000,
     "latest_event_start_ms": 1771060800000,
     "status": 0,
-    "status_start_ms": 1793403840000
+    "status_start_ms": 1793405640000
   },
   "united-utilities:UUP02056": {
     "latest_event_end_ms": 1758420120000,
@@ -63381,7 +63381,7 @@
     "latest_event_end_ms": 1745323920000,
     "latest_event_start_ms": 1745321880000,
     "status": 0,
-    "status_start_ms": 1793403000000
+    "status_start_ms": 1793403960000
   },
   "united-utilities:UUP02239": {
     "latest_event_end_ms": 1792860480000,
