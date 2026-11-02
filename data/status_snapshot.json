@@ -9416,8 +9416,8 @@
   "northumbrian:NWL00135": {
     "latest_event_end_ms": 1793632230000,
     "latest_event_start_ms": 1793632190000,
-    "status": -1,
-    "status_start_ms": 1793632500000
+    "status": 0,
+    "status_start_ms": 1793632230000
   },
   "northumbrian:NWL00136": {
     "latest_event_end_ms": 1792905119000,
@@ -11054,8 +11054,8 @@
   "northumbrian:NWL00409": {
     "latest_event_end_ms": 1793072519000,
     "latest_event_start_ms": 1793071919000,
-    "status": -1,
-    "status_start_ms": 1793606400000
+    "status": 0,
+    "status_start_ms": 1793072519000
   },
   "northumbrian:NWL00410": {
     "latest_event_end_ms": 1792870439000,
@@ -32070,10 +32070,10 @@
     "status_start_ms": 1790333760000
   },
   "severn-trent:SVT02608": {
-    "latest_event_end_ms": 1793603700000,
-    "latest_event_start_ms": 1793603495000,
-    "status": 0,
-    "status_start_ms": 1793603700000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1793634992000,
+    "status": 1,
+    "status_start_ms": 1793634992000
   },
   "severn-trent:SVT02609": {
     "latest_event_end_ms": null,
@@ -46677,7 +46677,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1793635266000
+    "status_start_ms": 1793636158000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1792876200000,
@@ -70400,8 +70400,8 @@
   "wessex:WXW01003": {
     "latest_event_end_ms": 1792862640000,
     "latest_event_start_ms": 1792850040000,
-    "status": -1,
-    "status_start_ms": null
+    "status": 0,
+    "status_start_ms": 1792862640000
   },
   "wessex:WXW01004": {
     "latest_event_end_ms": null,
