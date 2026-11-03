@@ -4964,7 +4964,7 @@
   "anglian:AWS00897": {
     "latest_event_end_ms": 1787829212000,
     "latest_event_start_ms": 1787819266000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1787829356000
   },
   "anglian:AWS00898": {
@@ -5012,7 +5012,7 @@
   "anglian:AWS00905": {
     "latest_event_end_ms": 1772524906000,
     "latest_event_start_ms": 1772504426000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1772524927000
   },
   "anglian:AWS00906": {
@@ -13368,10 +13368,10 @@
     "status_start_ms": 1793370454000
   },
   "northumbrian:NWL00795": {
-    "latest_event_end_ms": 1793669519000,
-    "latest_event_start_ms": 1793664119000,
-    "status": 0,
-    "status_start_ms": 1793669519000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1793677799000,
+    "status": 1,
+    "status_start_ms": 1793677799000
   },
   "northumbrian:NWL00796": {
     "latest_event_end_ms": 1782495185000,
@@ -13662,10 +13662,10 @@
     "status_start_ms": 1787220479000
   },
   "northumbrian:NWL00845": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1793677439000,
     "latest_event_start_ms": 1793674799000,
-    "status": 1,
-    "status_start_ms": 1793674799000
+    "status": 0,
+    "status_start_ms": 1793677439000
   },
   "northumbrian:NWL00847": {
     "latest_event_end_ms": 1792866599000,
@@ -22956,10 +22956,10 @@
     "status_start_ms": 1788131884000
   },
   "severn-trent:SVT00899": {
-    "latest_event_end_ms": 1788139060000,
-    "latest_event_start_ms": 1788138725000,
-    "status": 0,
-    "status_start_ms": 1788139060000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1793677279000,
+    "status": 1,
+    "status_start_ms": 1793677279000
   },
   "severn-trent:SVT00901": {
     "latest_event_end_ms": 1756903841000,
@@ -46677,7 +46677,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1793677555000
+    "status_start_ms": 1793678560000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1792876200000,
