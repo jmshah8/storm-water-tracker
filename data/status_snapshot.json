@@ -716,7 +716,7 @@
   "anglian:AWS00129": {
     "latest_event_end_ms": 1784301708000,
     "latest_event_start_ms": 1784301701000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1784302298000
   },
   "anglian:AWS00130": {
@@ -1256,7 +1256,7 @@
   "anglian:AWS00225": {
     "latest_event_end_ms": 1793915543000,
     "latest_event_start_ms": 1793915260000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1793916037000
   },
   "anglian:AWS00226": {
@@ -1700,7 +1700,7 @@
   "anglian:AWS00302": {
     "latest_event_end_ms": 1789271717000,
     "latest_event_start_ms": 1789271442000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1789272048000
   },
   "anglian:AWS00304": {
@@ -2846,7 +2846,7 @@
   "anglian:AWS00514": {
     "latest_event_end_ms": 1772803166000,
     "latest_event_start_ms": 1772802257000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1763841618000
   },
   "anglian:AWS00515": {
@@ -7946,13 +7946,13 @@
   "anglian:AWS01458": {
     "latest_event_end_ms": 1786882496000,
     "latest_event_start_ms": 1786881605000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1786882533000
   },
   "anglian:AWS01459": {
     "latest_event_end_ms": 1786069730000,
     "latest_event_start_ms": 1786069465000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1786069835000
   },
   "anglian:AWS01460": {
@@ -7964,7 +7964,7 @@
   "anglian:AWS01461": {
     "latest_event_end_ms": 1790817879000,
     "latest_event_start_ms": 1790817610000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1790818236000
   },
   "anglian:AWS01462": {
@@ -36948,10 +36948,10 @@
     "status_start_ms": 1793328523000
   },
   "south-west:SBB00762": {
-    "latest_event_end_ms": 1794134201000,
-    "latest_event_start_ms": 1794134091000,
-    "status": 0,
-    "status_start_ms": 1794134201000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1794165915000,
+    "status": 1,
+    "status_start_ms": 1794165915000
   },
   "south-west:SBB00763": {
     "latest_event_end_ms": 1792762431000,
