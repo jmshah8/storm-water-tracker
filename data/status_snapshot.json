@@ -2846,7 +2846,7 @@
   "anglian:AWS00514": {
     "latest_event_end_ms": 1772803166000,
     "latest_event_start_ms": 1772802257000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1763841618000
   },
   "anglian:AWS00515": {
@@ -4088,7 +4088,7 @@
   "anglian:AWS00735": {
     "latest_event_end_ms": 1793787983000,
     "latest_event_start_ms": 1793787412000,
-    "status": -1,
+    "status": 0,
     "status_start_ms": 1793788274000
   },
   "anglian:AWS00736": {
@@ -9684,8 +9684,8 @@
     "status_start_ms": 1787222437000
   },
   "northumbrian:NWL00180": {
-    "latest_event_end_ms": 1792915631000,
-    "latest_event_start_ms": 1792915295000,
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": null,
     "status": -1,
     "status_start_ms": 1794269821000
   },
@@ -10254,10 +10254,10 @@
     "status_start_ms": 1792863839000
   },
   "northumbrian:NWL00273": {
-    "latest_event_end_ms": 1794088440000,
-    "latest_event_start_ms": 1794088320000,
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1794088440000
+    "status_start_ms": 1672531200000
   },
   "northumbrian:NWL00274": {
     "latest_event_end_ms": 1694358000000,
@@ -17286,10 +17286,10 @@
     "status_start_ms": 1790147759000
   },
   "northumbrian:NWL01454": {
-    "latest_event_end_ms": 1793975006000,
-    "latest_event_start_ms": 1793974808000,
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1793975006000
+    "status_start_ms": 1672531200000
   },
   "northumbrian:NWL01455": {
     "latest_event_end_ms": 1694357999000,
@@ -46695,7 +46695,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1794281518000
+    "status_start_ms": 1794282346000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1792876200000,
