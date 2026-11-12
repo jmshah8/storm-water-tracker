@@ -15600,10 +15600,10 @@
     "status_start_ms": 1792870679000
   },
   "northumbrian:NWL01172": {
-    "latest_event_end_ms": 1794486310000,
-    "latest_event_start_ms": 1794486180000,
+    "latest_event_end_ms": 1794487240000,
+    "latest_event_start_ms": 1794486972000,
     "status": 0,
-    "status_start_ms": 1794486310000
+    "status_start_ms": 1794487240000
   },
   "northumbrian:NWL01173": {
     "latest_event_end_ms": 1790254030000,
@@ -16824,10 +16824,10 @@
     "status_start_ms": 1793022000000
   },
   "northumbrian:NWL01378": {
-    "latest_event_end_ms": 1788107999000,
-    "latest_event_start_ms": 1788105119000,
-    "status": 0,
-    "status_start_ms": 1788107999000
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1794487670000,
+    "status": 1,
+    "status_start_ms": 1794487670000
   },
   "northumbrian:NWL01379": {
     "latest_event_end_ms": 1792559880000,
@@ -23282,8 +23282,8 @@
   "severn-trent:SVT00960": {
     "latest_event_end_ms": 1792721782000,
     "latest_event_start_ms": 1792719702000,
-    "status": 0,
-    "status_start_ms": 1792721640000
+    "status": -1,
+    "status_start_ms": 1794487260000
   },
   "severn-trent:SVT00961": {
     "latest_event_end_ms": 1772298956000,
@@ -28346,8 +28346,8 @@
   "severn-trent:SVT01895": {
     "latest_event_end_ms": 1780342713000,
     "latest_event_start_ms": 1780341132000,
-    "status": -1,
-    "status_start_ms": 1794483660000
+    "status": 0,
+    "status_start_ms": 1794487260000
   },
   "severn-trent:SVT01897": {
     "latest_event_end_ms": 1792750123000,
@@ -29155,9 +29155,9 @@
   },
   "severn-trent:SVT02056": {
     "latest_event_end_ms": null,
-    "latest_event_start_ms": 1794482116000,
+    "latest_event_start_ms": 1794486465000,
     "status": 1,
-    "status_start_ms": 1794482116000
+    "status_start_ms": 1794486465000
   },
   "severn-trent:SVT02057": {
     "latest_event_end_ms": 1788491101000,
@@ -68504,7 +68504,7 @@
   "wessex:WXW00676": {
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
-    "status": 0,
+    "status": -1,
     "status_start_ms": null
   },
   "wessex:WXW00677": {
