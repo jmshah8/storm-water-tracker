@@ -2450,7 +2450,7 @@
   "anglian:AWS00444": {
     "latest_event_end_ms": 1793113571000,
     "latest_event_start_ms": 1793113461000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1793113582000
   },
   "anglian:AWS00445": {
@@ -8594,7 +8594,7 @@
   "anglian:AWS01574": {
     "latest_event_end_ms": 1792885743000,
     "latest_event_start_ms": 1792866073000,
-    "status": 0,
+    "status": -1,
     "status_start_ms": 1792886723000
   },
   "anglian:AWS01575": {
@@ -29154,10 +29154,10 @@
     "status_start_ms": 1788495668000
   },
   "severn-trent:SVT02056": {
-    "latest_event_end_ms": null,
+    "latest_event_end_ms": 1794623770000,
     "latest_event_start_ms": 1794622559000,
-    "status": 1,
-    "status_start_ms": 1794622559000
+    "status": 0,
+    "status_start_ms": 1794623770000
   },
   "severn-trent:SVT02057": {
     "latest_event_end_ms": 1788491101000,
@@ -30462,10 +30462,10 @@
     "status_start_ms": 1765525920000
   },
   "severn-trent:SVT02306": {
-    "latest_event_end_ms": null,
-    "latest_event_start_ms": 1794622690000,
-    "status": 1,
-    "status_start_ms": 1794622690000
+    "latest_event_end_ms": 1794623750000,
+    "latest_event_start_ms": 1794623410000,
+    "status": 0,
+    "status_start_ms": 1794623750000
   },
   "severn-trent:SVT02307": {
     "latest_event_end_ms": 1779946955000,
@@ -32826,8 +32826,8 @@
     "status_start_ms": 1784685125000
   },
   "south-west:SBB00037": {
-    "latest_event_end_ms": 1794620461000,
-    "latest_event_start_ms": 1794615621000,
+    "latest_event_end_ms": null,
+    "latest_event_start_ms": 1794624271000,
     "status": -1,
     "status_start_ms": 1787839104000
   },
@@ -39678,10 +39678,10 @@
     "status_start_ms": 1792718770000
   },
   "south-west:SBB01247": {
-    "latest_event_end_ms": 1794623147000,
-    "latest_event_start_ms": 1794622871000,
+    "latest_event_end_ms": 1794624478000,
+    "latest_event_start_ms": 1794624445000,
     "status": 0,
-    "status_start_ms": 1794623147000
+    "status_start_ms": 1794624478000
   },
   "south-west:SBB01248": {
     "latest_event_end_ms": 1777546721000,
@@ -46695,7 +46695,7 @@
     "latest_event_end_ms": null,
     "latest_event_start_ms": null,
     "status": 0,
-    "status_start_ms": 1794623492000
+    "status_start_ms": 1794624381000
   },
   "thames:TWL00000": {
     "latest_event_end_ms": 1792876200000,
